@@ -7,6 +7,7 @@ import { LicensesModule } from './modules/licenses/licenses.module';
 import { I18nModule } from 'nestjs-i18n';
 import { AppConfigModule } from './config/config.module';
 import { createI18nConfig } from './config/i18n.config';
+import { HealthModule } from './modules/health/health.module';
 @Module({
   imports: [
     AppConfigModule,
@@ -19,6 +20,7 @@ import { createI18nConfig } from './config/i18n.config';
       useFactory: createI18nConfig,
       inject: [AppConfigModule],
     }),
+    HealthModule,
   ],
 })
 export class AppModule {}
