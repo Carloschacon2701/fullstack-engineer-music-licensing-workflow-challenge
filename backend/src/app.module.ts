@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { MoviesModule } from './movies/movies.module';
-import { TracksModule } from './tracks/tracks.module';
-import { ScenesModule } from './scenes/scenes.module';
-import { SongsModule } from './songs/songs.module';
-import { LicensesModule } from './licenses/licenses.module';
+import { MoviesModule } from './modules/movies/movies.module';
+import { TracksModule } from './modules/tracks/tracks.module';
+import { ScenesModule } from './modules/scenes/scenes.module';
+import { SongsModule } from './modules/songs/songs.module';
+import { LicensesModule } from './modules/licenses/licenses.module';
 
 @Module({
   imports: [
