@@ -13,3 +13,79 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Movie {
+  id          Int      @id @default(autoincrement())
+  title       String   @db.VarChar(255)
+  description String   @db.Text
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  scenes Scene[]
+}
+
+model Scene {
+  id          Int      @id @default(autoincrement())
+  movie_id    Int
+  title       String   @db.VarChar(255)
+  description String   @db.Text
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  movie  Movie   @relation(fields: [movie_id], references: [id])
+  tracks Track[]
+}
+
+model Track {
+  id                 Int      @id @default(autoincrement())
+  scene_id           Int
+  song_id            Int
+  start_time_seconds Int
+  end_time_seconds   Int
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  song    Song     @relation(fields: [song_id], references: [id])
+  scene   Scene    @relation(fields: [scene_id], references: [id])
+  license License?
+}
+
+model Song {
+  id         Int      @id @default(autoincrement())
+  title      String   @db.VarChar(255)
+  artist     String   @db.VarChar(255)
+  genre      String   @db.VarChar(255)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  tracks Track[]
+}
+
+model License {
+  id        Int @id @default(autoincrement())
+  track_id  Int @unique
+  status_id Int
+
+  track                  Track                    @relation(fields: [track_id], references: [id])
+  status                 Status                   @relation(fields: [status_id], references: [id])
+  licenseStatusHistories License_Status_History[]
+}
+
+model Status {
+  id   Int    @id @default(autoincrement())
+  name String @db.VarChar(255)
+
+  licenses      License[]
+  currentStatus License_Status_History[] @relation("currentStatus")
+}
+
+model License_Status_History {
+  id         Int      @id @default(autoincrement())
+  license_id Int
+  status_id  Int
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  license License @relation(fields: [license_id], references: [id], onDelete: Cascade)
+  status  Status  @relation("currentStatus", fields: [status_id], references: [id])
+}
