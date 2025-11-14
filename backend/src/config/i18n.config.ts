@@ -1,9 +1,5 @@
 import { ConfigService } from '@nestjs/config';
-import {
-  I18nOptions,
-  QueryResolver,
-  AcceptLanguageResolver,
-} from 'nestjs-i18n';
+import { I18nOptions } from 'nestjs-i18n';
 import { join } from 'path';
 
 export const createI18nConfig = (configService: ConfigService): I18nOptions => {
@@ -14,9 +10,5 @@ export const createI18nConfig = (configService: ConfigService): I18nOptions => {
       path: join(__dirname, '/i18n/'),
       watch: !isProd,
     },
-    resolvers: [
-      { use: QueryResolver, options: ['lang'] },
-      AcceptLanguageResolver,
-    ],
   };
 };
