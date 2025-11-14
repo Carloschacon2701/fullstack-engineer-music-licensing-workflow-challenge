@@ -5,9 +5,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { License } from './entities/license.entity';
 import { Status } from './entities/status.entity';
 import { Track } from '../tracks/entities/track.entity';
+import { LicenseStatusHistory } from './entities/license-status-history.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([License, Status, Track])],
+  imports: [
+    TypeOrmModule.forFeature([License, Status, Track, LicenseStatusHistory]),
+  ],
   controllers: [LicensesController],
   providers: [LicensesService],
   exports: [LicensesService],
