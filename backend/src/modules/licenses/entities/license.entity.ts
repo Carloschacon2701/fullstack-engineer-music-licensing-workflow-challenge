@@ -19,7 +19,7 @@ export class License {
   @Column({ type: 'int', unique: true })
   track_id: number;
 
-  @Column({ name: 'status_id' })
+  @Column({ type: 'int' })
   status_id: number;
 
   @OneToOne(() => Track, (track) => track.license)

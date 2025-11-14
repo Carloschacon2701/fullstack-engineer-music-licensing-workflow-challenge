@@ -17,22 +17,22 @@ export class Track {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'scene_id' })
+  @Column({ type: 'int' })
   scene_id: number;
 
-  @Column({ name: 'song_id' })
+  @Column({ type: 'int' })
   song_id: number;
 
-  @Column({ name: 'start_time_seconds', type: 'int' })
+  @Column({ type: 'int' })
   start_time_seconds: number;
 
-  @Column({ name: 'end_time_seconds', type: 'int' })
+  @Column({ type: 'int' })
   end_time_seconds: number;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn()
   created_at: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
+  @UpdateDateColumn()
   updated_at: Date;
 
   @ManyToOne(() => Scene, (scene) => scene.tracks)
