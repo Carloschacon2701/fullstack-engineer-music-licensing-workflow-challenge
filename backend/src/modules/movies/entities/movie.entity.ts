@@ -1,1 +1,30 @@
-export class Movie {}
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+} from 'typeorm';
+import { Scene } from '../../scenes/entities/scene.entity';
+
+@Entity('Movie')
+export class Movie {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column({ type: 'varchar', length: 255 })
+  title: string;
+
+  @Column({ type: 'text' })
+  description: string;
+
+  @CreateDateColumn({ name: 'created_at' })
+  created_at: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updated_at: Date;
+
+  @OneToMany(() => Scene, (scene) => scene.movie)
+  scenes: Scene[];
+}
