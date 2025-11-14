@@ -6,11 +6,6 @@ import { UpdateLicenseDto } from './dto/update-license.dto';
 export class LicensesController {
   constructor(private readonly licensesService: LicensesService) {}
 
-  @Get()
-  findAll() {
-    return this.licensesService.findAll();
-  }
-
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.licensesService.findOne(+id);

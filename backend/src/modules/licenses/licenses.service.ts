@@ -40,7 +40,7 @@ export class LicensesService {
     license: License,
   ): Promise<void> {
     const currentStatus = license.status_id;
-    if (statusId === LicenseStatusEnum.GENERATED) {
+    if (statusId === LicenseStatusEnum.PENDING) {
       if (currentStatus) {
         throw new I18nException(
           'license.status.alreadyGenerated',
@@ -48,11 +48,11 @@ export class LicensesService {
         );
       }
 
-      await this.updateLicenseStatus(license, LicenseStatusEnum.GENERATED);
+      await this.updateLicenseStatus(license, LicenseStatusEnum.PENDING);
     }
 
     if (statusId === LicenseStatusEnum.APPROVED) {
-      const allowedStatuses = [LicenseStatusEnum.GENERATED];
+      const allowedStatuses = [LicenseStatusEnum.IN_NEGOTIATION];
 
       if (!allowedStatuses.includes(currentStatus)) {
         throw new I18nException(
@@ -63,8 +63,8 @@ export class LicensesService {
       await this.updateLicenseStatus(license, LicenseStatusEnum.APPROVED);
     }
 
-    if (statusId === LicenseStatusEnum.CANCELED) {
-      const allowedStatuses = [LicenseStatusEnum.GENERATED];
+    if (statusId === LicenseStatusEnum.CANCELLED) {
+      const allowedStatuses = [LicenseStatusEnum.PENDING];
 
       if (!allowedStatuses.includes(currentStatus)) {
         throw new I18nException(
@@ -72,11 +72,11 @@ export class LicensesService {
           HttpStatus.BAD_REQUEST,
         );
       }
-      await this.updateLicenseStatus(license, LicenseStatusEnum.CANCELED);
+      await this.updateLicenseStatus(license, LicenseStatusEnum.CANCELLED);
     }
 
     if (statusId === LicenseStatusEnum.REJECTED) {
-      const allowedStatuses = [LicenseStatusEnum.GENERATED];
+      const allowedStatuses = [LicenseStatusEnum.IN_NEGOTIATION];
 
       if (!allowedStatuses.includes(currentStatus)) {
         throw new I18nException(
@@ -85,6 +85,18 @@ export class LicensesService {
         );
       }
       await this.updateLicenseStatus(license, LicenseStatusEnum.REJECTED);
+    }
+
+    if (statusId === LicenseStatusEnum.IN_NEGOTIATION) {
+      const allowedStatuses = [LicenseStatusEnum.PENDING];
+
+      if (!allowedStatuses.includes(currentStatus)) {
+        throw new I18nException(
+          'license.status.notAllowed',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      await this.updateLicenseStatus(license, LicenseStatusEnum.IN_NEGOTIATION);
     }
   }
 
@@ -103,13 +115,9 @@ export class LicensesService {
 
     const savedLicense = await this.licenseRepository.save(license);
 
-    await this.statusMachine(LicenseStatusEnum.GENERATED, savedLicense);
+    await this.statusMachine(LicenseStatusEnum.PENDING, savedLicense);
 
     return savedLicense;
-  }
-
-  findAll() {
-    return `This action returns all licenses`;
   }
 
   findOne(id: number) {
