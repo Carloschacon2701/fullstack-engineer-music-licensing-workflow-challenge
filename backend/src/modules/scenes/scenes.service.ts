@@ -2,7 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { CreateSceneDto } from './dto/create-scene.dto';
 import { UpdateSceneDto } from './dto/update-scene.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Scene } from './entities/scene.entity';
 import { FindAllSceneDto } from './dto/findAll-scene.dto';
 import { calculatePagination } from '@/utils/getSkipPage';
@@ -38,20 +38,14 @@ export class ScenesService {
     return scene;
   }
 
-  async findAll(findAllSceneDto: FindAllSceneDto) {
-    const { limit = 10, page = 1, movie_id } = findAllSceneDto;
+  async findAllByMovie(movie_id: number, findAllSceneDto: FindAllSceneDto) {
+    const { limit = 10, page = 1 } = findAllSceneDto;
     const { skip } = calculatePagination(page, limit);
-
-    const where: FindOptionsWhere<Scene> = {};
-
-    if (movie_id) {
-      where.movie_id = movie_id;
-    }
 
     const [scenes, total] = await this.sceneRepository.findAndCount({
       skip,
       take: limit,
-      where,
+      where: { movie_id },
     });
     return {
       data: scenes,

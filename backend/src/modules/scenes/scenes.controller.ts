@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ScenesService } from './scenes.service';
 import { CreateSceneDto } from './dto/create-scene.dto';
@@ -22,9 +23,12 @@ export class ScenesController {
     return this.scenesService.create(createSceneDto);
   }
 
-  @Get()
-  findAll(@Query() findAllSceneDto: FindAllSceneDto) {
-    return this.scenesService.findAll(findAllSceneDto);
+  @Get('movie/:movie_id')
+  findAllByMovie(
+    @Param('movie_id', ParseIntPipe) movie_id: number,
+    @Query() findAllSceneDto: FindAllSceneDto,
+  ) {
+    return this.scenesService.findAllByMovie(movie_id, findAllSceneDto);
   }
 
   @Get(':id')

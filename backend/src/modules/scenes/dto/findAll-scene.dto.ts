@@ -10,9 +10,4 @@ export class FindAllSceneDto {
   @IsNumber()
   @IsPositive()
   page?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @IsPositive()
-  movie_id?: number;
 }
