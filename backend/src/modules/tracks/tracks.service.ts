@@ -64,13 +64,10 @@ export class TracksService {
     const { page = 1, limit = 10 } = findAllTrackDto;
     const { limit: limitPage, skip } = calculatePagination(page, limit);
 
-    const [tracks, count] = await Promise.all([
-      this.trackRepository.find({
-        skip,
-        take: limitPage,
-      }),
-      this.trackRepository.count(),
-    ]);
+    const [tracks, count] = await this.trackRepository.findAndCount({
+      skip,
+      take: limitPage,
+    });
 
     return {
       data: tracks,
@@ -87,16 +84,11 @@ export class TracksService {
 
     const where: FindOptionsWhere<Track> = { scene: { movie_id: movieId } };
 
-    const [tracks, count] = await Promise.all([
-      this.trackRepository.find({
-        skip,
-        take: limitPage,
-        where,
-      }),
-      this.trackRepository.count({
-        where,
-      }),
-    ]);
+    const [tracks, count] = await this.trackRepository.findAndCount({
+      skip,
+      take: limitPage,
+      where,
+    });
 
     return {
       data: tracks,
@@ -112,10 +104,11 @@ export class TracksService {
     const { limit: limitPage, skip } = calculatePagination(page, limit);
     const where: FindOptionsWhere<Track> = { scene: { id: sceneId } };
 
-    const [tracks, count] = await Promise.all([
-      this.trackRepository.find({ where, skip, take: limitPage }),
-      this.trackRepository.count({ where }),
-    ]);
+    const [tracks, count] = await this.trackRepository.findAndCount({
+      where,
+      skip,
+      take: limitPage,
+    });
 
     return {
       data: tracks,

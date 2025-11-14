@@ -28,17 +28,15 @@ export class MoviesService {
       whereClause.title = Like(`%${search}%`);
     }
 
-    const [movies, count] = await Promise.all([
-      this.movieRepository.find({
-        skip,
-        where: whereClause,
-        take: paginationLimit,
-        order: {
-          created_at: 'DESC',
-        },
-      }),
-      this.movieRepository.count({ where: whereClause }),
-    ]);
+    const [movies, count] = await this.movieRepository.findAndCount({
+      skip,
+      where: whereClause,
+      take: paginationLimit,
+      order: {
+        created_at: 'DESC',
+      },
+    });
+
     return {
       data: movies,
       pagination: calculatePaginationResponse(count, page, paginationLimit),
