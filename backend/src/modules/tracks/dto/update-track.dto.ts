@@ -1,4 +1,13 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateTrackDto } from './create-track.dto';
+import { IsInt, IsOptional, IsPositive } from 'class-validator';
 
-export class UpdateTrackDto extends PartialType(CreateTrackDto) {}
+export class UpdateTrackDto {
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  start_time_seconds?: number;
+
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  end_time_seconds?: number;
+}
