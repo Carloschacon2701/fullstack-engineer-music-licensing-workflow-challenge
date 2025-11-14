@@ -8,13 +8,14 @@ import {
   Delete,
   Query,
   ParseIntPipe,
+  Put,
 } from '@nestjs/common';
 import { TracksService } from './tracks.service';
 import { CreateTrackDto } from './dto/create-track.dto';
 import { UpdateTrackDto } from './dto/update-track.dto';
-import { FindAllTrackDto } from './dto/findAll-track.dto';
 import { FindAllBySceneIdTrackDto } from './dto/findAllBySceneID-track.dto';
 import { FindAllByMovieIdTrackDto } from './dto/findAllByMovieID-track.dto';
+import { UpdateTrackLicenseStatusDto } from './dto/updateTrackLicenseStatus-track.dto';
 
 @Controller('tracks')
 export class TracksController {
@@ -23,11 +24,6 @@ export class TracksController {
   @Post()
   create(@Body() createTrackDto: CreateTrackDto) {
     return this.tracksService.create(createTrackDto);
-  }
-
-  @Get()
-  findAll(@Query() findAllTrackDto: FindAllTrackDto) {
-    return this.tracksService.findAll(findAllTrackDto);
   }
 
   @Get(':id')
@@ -60,6 +56,14 @@ export class TracksController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateTrackDto: UpdateTrackDto) {
     return this.tracksService.update(+id, updateTrackDto);
+  }
+
+  @Put(':id/license/status')
+  updateLicenseStatus(
+    @Param('id') id: string,
+    @Body() updateLicenseStatusDto: UpdateTrackLicenseStatusDto,
+  ) {
+    return this.tracksService.updateLicenseStatus(+id, updateLicenseStatusDto);
   }
 
   @Delete(':id')

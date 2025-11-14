@@ -1,7 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { CreateTrackDto } from './dto/create-track.dto';
 import { UpdateTrackDto } from './dto/update-track.dto';
-import { FindAllTrackDto } from './dto/findAll-track.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, Repository } from 'typeorm';
 import { Track } from './entities/track.entity';
@@ -13,6 +12,7 @@ import { Song } from '../songs/entities/song.entity';
 import { Scene } from '../scenes/entities/scene.entity';
 import { I18nException } from '@/common/exceptions/i18n.exception';
 import { LicensesService } from '../licenses/licenses.service';
+import { UpdateTrackLicenseStatusDto } from './dto/updateTrackLicenseStatus-track.dto';
 
 @Injectable()
 export class TracksService {
@@ -60,21 +60,6 @@ export class TracksService {
     return savedTrack;
   }
 
-  async findAll(findAllTrackDto: FindAllTrackDto) {
-    const { page = 1, limit = 10 } = findAllTrackDto;
-    const { limit: limitPage, skip } = calculatePagination(page, limit);
-
-    const [tracks, count] = await this.trackRepository.findAndCount({
-      skip,
-      take: limitPage,
-    });
-
-    return {
-      data: tracks,
-      pagination: calculatePaginationResponse(count, page, limit),
-    };
-  }
-
   async findAllByMovieId(
     movieId: number,
     findAllByMovieIdTrackDto: FindAllByMovieIdTrackDto,
@@ -88,6 +73,9 @@ export class TracksService {
       skip,
       take: limitPage,
       where,
+      relations: {
+        license: true,
+      },
     });
 
     return {
@@ -108,6 +96,9 @@ export class TracksService {
       where,
       skip,
       take: limitPage,
+      relations: {
+        license: true,
+      },
     });
 
     return {
@@ -143,6 +134,19 @@ export class TracksService {
     return savedTrack;
   }
 
+  async updateLicenseStatus(
+    id: number,
+    updateLicenseStatusDto: UpdateTrackLicenseStatusDto,
+  ) {
+    const { status } = updateLicenseStatusDto;
+    const track = await this.trackRepository.findOneBy({ id });
+
+    if (!track) {
+      throw new I18nException('track.notFound', HttpStatus.NOT_FOUND);
+    }
+
+    await this.licenseService.updateStatus(track.license.id, { status });
+  }
   async remove(id: number) {
     const track = await this.trackRepository.findOneBy({ id });
     if (!track) {

@@ -1,6 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { CreateLicenseDto } from './dto/create-license.dto';
-import { UpdateLicenseDto } from './dto/update-license.dto';
 import { I18nException } from '@/common/exceptions/i18n.exception';
 import { Track } from '../tracks/entities/track.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -9,6 +8,7 @@ import { Status } from './entities/status.entity';
 import { License } from './entities/license.entity';
 import { LicenseStatusEnum } from './entities/license.status.enum';
 import { LicenseStatusHistory } from './entities/license-status-history.entity';
+import { UpdateLicenseStatusDto } from './dto/updateStatus-license.dto';
 
 @Injectable()
 export class LicensesService {
@@ -120,15 +120,23 @@ export class LicensesService {
     return savedLicense;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} license`;
+  async findOne(id: number) {
+    const license = await this.licenseRepository.findOneBy({ id });
+    if (!license) {
+      throw new I18nException('license.notFound', HttpStatus.NOT_FOUND);
+    }
+    return license;
   }
 
-  async update(id: number, updateLicenseDto: UpdateLicenseDto) {
-    return `This action updates a #${id} license`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} license`;
+  async updateStatus(
+    id: number,
+    updateLicenseStatusDto: UpdateLicenseStatusDto,
+  ) {
+    const { status } = updateLicenseStatusDto;
+    const license = await this.licenseRepository.findOneBy({ id });
+    if (!license) {
+      throw new I18nException('license.notFound', HttpStatus.NOT_FOUND);
+    }
+    await this.statusMachine(status, license);
   }
 }
