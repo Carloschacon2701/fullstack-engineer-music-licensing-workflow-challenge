@@ -1,7 +1,17 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
 import { ScenesService } from './scenes.service';
 import { CreateSceneDto } from './dto/create-scene.dto';
 import { UpdateSceneDto } from './dto/update-scene.dto';
+import { FindAllSceneDto } from './dto/findAll-scene.dto';
 
 @Controller('scenes')
 export class ScenesController {
@@ -13,8 +23,8 @@ export class ScenesController {
   }
 
   @Get()
-  findAll() {
-    return this.scenesService.findAll();
+  findAll(@Query() findAllSceneDto: FindAllSceneDto) {
+    return this.scenesService.findAll(findAllSceneDto);
   }
 
   @Get(':id')
