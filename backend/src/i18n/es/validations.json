@@ -1,5 +1,8 @@
 {
-  "movie": {
-    "notFound": "Película no encontrada"
+  "license": {
+    "status": {
+      "alreadyGenerated": "La licencia ya ha sido generada",
+      "notAllowed": "La transición de estado no está permitida"
+    }
   }
 }

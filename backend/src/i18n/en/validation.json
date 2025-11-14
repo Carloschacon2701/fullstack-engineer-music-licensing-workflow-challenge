@@ -1,5 +1,8 @@
 {
-  "movie": {
-    "notFound": "Movie not found"
+  "license": {
+    "status": {
+      "alreadyGenerated": "License has already been generated",
+      "notAllowed": "Status transition is not allowed"
+    }
   }
 }

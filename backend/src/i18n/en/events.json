@@ -1,5 +1,14 @@
 {
   "movie": {
     "notFound": "Movie not found"
+  },
+  "scene": {
+    "notFound": "Scene not found"
+  },
+  "song": {
+    "notFound": "Song not found"
+  },
+  "track": {
+    "notFound": "Track not found"
   }
 }
