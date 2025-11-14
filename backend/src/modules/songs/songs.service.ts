@@ -1,26 +1,74 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { CreateSongDto } from './dto/create-song.dto';
 import { UpdateSongDto } from './dto/update-song.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { FindOptionsWhere, Like, Repository } from 'typeorm';
+import { Song } from './entities/song.entity';
+import { FindAllSongDto } from './dto/findAll-song.dto';
+import { calculatePagination } from '@/utils/getSkipPage';
+import { calculatePaginationResponse } from '@/utils/calculatePaginationResponse';
+import { I18nException } from '@/common/exceptions/i18n.exception';
 
 @Injectable()
 export class SongsService {
-  create(createSongDto: CreateSongDto) {
-    return 'This action adds a new song';
+  constructor(
+    @InjectRepository(Song)
+    private songRepository: Repository<Song>,
+  ) {}
+
+  async create(createSongDto: CreateSongDto) {
+    const { title, artist, genre } = createSongDto;
+    const song = this.songRepository.create({ title, artist, genre });
+    const savedSong = await this.songRepository.save(song);
+    return savedSong;
   }
 
-  findAll() {
-    return `This action returns all songs`;
+  async findAll(findAllSongDto: FindAllSongDto) {
+    const { page = 1, limit = 10, title, artist } = findAllSongDto;
+    const { limit: limitPage, skip } = calculatePagination(page, limit);
+
+    const where: FindOptionsWhere<Song> = {};
+    if (title) {
+      where.title = Like(`%${title}%`);
+    }
+    if (artist) {
+      where.artist = Like(`%${artist}%`);
+    }
+    const [songs, count] = await this.songRepository.findAndCount({
+      skip,
+      take: limitPage,
+      where,
+    });
+    return {
+      data: songs,
+      pagination: calculatePaginationResponse(count, page, limit),
+    };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} song`;
+  async findOne(id: number) {
+    const song = await this.songRepository.findOneBy({ id });
+    if (!song) {
+      throw new I18nException('song.notFound', HttpStatus.NOT_FOUND);
+    }
+    return song;
   }
 
-  update(id: number, updateSongDto: UpdateSongDto) {
-    return `This action updates a #${id} song`;
+  async update(id: number, updateSongDto: UpdateSongDto) {
+    const song = await this.songRepository.findOneBy({ id });
+    if (!song) {
+      throw new I18nException('song.notFound', HttpStatus.NOT_FOUND);
+    }
+    Object.assign(song, updateSongDto);
+    const updatedSong = await this.songRepository.save(song);
+    return updatedSong;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} song`;
+  async remove(id: number) {
+    const song = await this.songRepository.findOneBy({ id });
+    if (!song) {
+      throw new I18nException('song.notFound', HttpStatus.NOT_FOUND);
+    }
+    await this.songRepository.delete(id);
+    return song;
   }
 }
