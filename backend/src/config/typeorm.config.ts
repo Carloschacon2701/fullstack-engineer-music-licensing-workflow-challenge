@@ -21,7 +21,7 @@ export const TypeOrmConfig = TypeOrmModule.forRootAsync({
     database: configService.get('DB_NAME'),
     synchronize: false,
     migrationsRun: true,
-    migrations: [__dirname + '/../db/migrations/*.ts'],
+    migrations: [__dirname + '/../db/migrations/*{.ts,.js}'],
     entities: [
       Movie,
       Scene,
