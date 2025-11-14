@@ -1,6 +1,7 @@
 export enum LicenseStatusEnum {
-  GENERATED = 1,
-  APPROVED = 2,
-  CANCELED = 3,
-  REJECTED = 4,
+  PENDING = 1,
+  IN_NEGOTIATION = 2,
+  CANCELLED = 3,
+  APPROVED = 4,
+  REJECTED = 5,
 }
