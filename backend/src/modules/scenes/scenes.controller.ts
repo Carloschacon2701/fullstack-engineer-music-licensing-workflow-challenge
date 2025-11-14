@@ -36,7 +36,7 @@ export class ScenesController {
     return this.scenesService.findOne(+id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   update(@Param('id') id: string, @Body() updateSceneDto: UpdateSceneDto) {
     return this.scenesService.update(+id, updateSceneDto);
   }

@@ -53,7 +53,7 @@ export class TracksController {
     );
   }
 
-  @Patch(':id')
+  @Put(':id')
   update(@Param('id') id: string, @Body() updateTrackDto: UpdateTrackDto) {
     return this.tracksService.update(+id, updateTrackDto);
   }

@@ -32,7 +32,7 @@ export class SongsController {
     return this.songsService.findOne(+id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   update(@Param('id') id: string, @Body() updateSongDto: UpdateSongDto) {
     return this.songsService.update(+id, updateSongDto);
   }
