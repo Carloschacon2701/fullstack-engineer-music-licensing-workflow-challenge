@@ -7,6 +7,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { Track } from '../../tracks/entities/track.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity('Song')
 export class Song {
@@ -22,6 +23,7 @@ export class Song {
   @Column({ type: 'varchar', length: 255 })
   genre: string;
 
+  @Exclude()
   @Column({ type: 'boolean', default: false })
   is_deleted: boolean;
 

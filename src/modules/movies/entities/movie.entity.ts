@@ -7,6 +7,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { Scene } from '../../scenes/entities/scene.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity('Movie')
 export class Movie {
@@ -25,6 +26,7 @@ export class Movie {
   @UpdateDateColumn({ name: 'updated_at' })
   updated_at: Date;
 
+  @Exclude()
   @Column({ type: 'boolean', default: false })
   is_deleted: boolean;
 

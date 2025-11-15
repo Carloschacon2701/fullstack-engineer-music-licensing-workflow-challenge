@@ -11,6 +11,7 @@ import {
 import { Scene } from '../../scenes/entities/scene.entity';
 import { Song } from '../../songs/entities/song.entity';
 import { License } from '../../licenses/entities/license.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity('Track')
 export class Track {
@@ -29,6 +30,7 @@ export class Track {
   @Column({ type: 'int' })
   end_time_seconds: number;
 
+  @Exclude()
   @Column({ type: 'boolean', default: false })
   is_deleted: boolean;
 

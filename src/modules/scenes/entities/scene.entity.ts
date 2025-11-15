@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { Movie } from '../../movies/entities/movie.entity';
 import { Track } from '../../tracks/entities/track.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity('Scene')
 export class Scene {
@@ -25,6 +26,7 @@ export class Scene {
   @Column({ type: 'text' })
   description: string;
 
+  @Exclude()
   @Column({ type: 'boolean', default: false })
   is_deleted: boolean;
 
