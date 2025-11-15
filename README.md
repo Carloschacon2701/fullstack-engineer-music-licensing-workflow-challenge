@@ -14,6 +14,7 @@ This is the backend API for the **Music Licensing Workflow** system, designed to
 - **Documentation:** Swagger/OpenAPI
 - **Validation:** class-validator & class-transformer
 - **Internationalization:** nestjs-i18n
+- **Logging:** NestJS built-in Logger with HTTP interceptor
 - **Containerization:** Docker
 
 ## 🏗️ Architecture
@@ -366,7 +367,8 @@ src/
 ├── main.ts                       # Application entry point
 ├── common/                       # Shared utilities
 │   ├── exceptions/              # Custom exception handlers
-│   └── filters/                 # Global exception filters
+│   ├── filters/                 # Global exception filters
+│   └── interceptors/            # HTTP interceptors (logging, etc.)
 ├── config/                       # Configuration modules
 │   ├── app.config.ts            # App configuration
 │   ├── i18n.config.ts           # Internationalization config
@@ -392,6 +394,76 @@ src/
     └── getSkipPage.ts
 ```
 
+## 📊 Logging
+
+The application implements comprehensive logging using NestJS's built-in Logger, providing visibility into application behavior while maintaining clean, professional output.
+
+### HTTP Request/Response Logging
+
+All HTTP requests are automatically logged via the `HttpLoggingInterceptor`:
+
+- **Request Logging:** Method, URL, IP address, User-Agent, query parameters, path parameters, and request body (with sensitive data redaction)
+- **Response Logging:** Status code and response time
+- **Log Levels:**
+  - `log`: Successful requests (2xx, 3xx)
+  - `warn`: Client errors (4xx)
+  - `error`: Server errors (5xx)
+- **Health Check Exclusion:** Health check endpoints (`/health`) are excluded to reduce log noise
+
+### Service-Level Logging
+
+Critical business operations are logged at the service level:
+
+#### Movies Service
+- Movie creation, updates, and soft deletions
+
+#### Scenes Service
+- Scene creation, updates, and soft deletions
+
+#### Songs Service
+- Song creation, updates, and soft deletions
+
+#### Tracks Service
+- Track creation and soft deletions
+
+#### Licenses Service
+- License creation
+- License status transitions (with previous and new status)
+- License removal (cancellation)
+
+### WebSocket Logging
+
+The WebSocket gateway logs:
+- Client connections and disconnections
+- License status update emissions
+
+### Application Lifecycle Logging
+
+- Application startup and configuration
+- Database connection status
+- Port and Swagger documentation URLs
+
+### Error Logging
+
+The global exception filter logs all errors with:
+- Request method and URL
+- Error message and stack trace
+- Appropriate error context
+
+### Security & Privacy
+
+The logging interceptor automatically sanitizes sensitive data:
+- Passwords, tokens, secrets, and authorization headers are redacted in logs
+- Deep object traversal ensures nested sensitive fields are protected
+- Logs maintain usability while protecting sensitive information
+
+### Log Configuration
+
+The application uses NestJS's built-in Logger with the following configuration:
+- **Log Levels:** `error`, `warn`, `log` (configured in `main.ts`)
+- **Format:** Structured logs with context (service name, log level, message)
+- **Location:** Logs are output to console/stdout for container-friendly logging
+
 ## 🔒 Security Considerations
 
 - **Input Validation:** All DTOs use `class-validator` decorators
@@ -399,6 +471,7 @@ src/
 - **CORS:** Enabled for cross-origin requests (configure appropriately for production)
 - **Error Handling:** Global exception filter prevents sensitive error exposure
 - **Soft Deletes:** Prevents accidental data loss
+- **Sensitive Data Protection:** Logging interceptor automatically redacts passwords, tokens, and other sensitive fields
 
 ## 🧪 Testing
 
