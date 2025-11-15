@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { CatchEverythingFilter } from './common/filters/catchEverything.filter';
 import { I18nValidationExceptionFilter, I18nValidationPipe } from 'nestjs-i18n';
+import { swaggerConfig } from './config/swagger.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -19,6 +20,8 @@ async function bootstrap() {
     new CatchEverythingFilter(),
     new I18nValidationExceptionFilter(),
   );
+
+  swaggerConfig(app);
 
   await app.listen(process.env.PORT ?? 3000);
 }
