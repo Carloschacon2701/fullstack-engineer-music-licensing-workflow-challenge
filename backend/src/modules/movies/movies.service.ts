@@ -24,7 +24,7 @@ export class MoviesService {
   async findAll(findAllMoviesDto: FindAllMoviesDto) {
     const { page = 1, limit = 10, search } = findAllMoviesDto;
     const { skip, limit: paginationLimit } = calculatePagination(page, limit);
-    const whereClause: FindOptionsWhere<Movie> = {};
+    const whereClause: FindOptionsWhere<Movie> = { is_deleted: false };
 
     if (search) {
       whereClause.title = Like(`%${search}%`);
@@ -46,7 +46,10 @@ export class MoviesService {
   }
 
   async findOne(id: number) {
-    const movie = await this.movieRepository.findOne({ where: { id } });
+    const movie = await this.movieRepository.findOne({
+      where: { id, is_deleted: false },
+    });
+
     if (!movie) {
       throw new I18nException(
         'events.movie.notFound',
@@ -54,11 +57,14 @@ export class MoviesService {
         this.i18n,
       );
     }
+
     return movie;
   }
 
   async update(id: number, updateMovieDto: UpdateMovieDto) {
-    const movie = await this.movieRepository.findOne({ where: { id } });
+    const movie = await this.movieRepository.findOne({
+      where: { id, is_deleted: false },
+    });
 
     if (!movie) {
       throw new I18nException(
@@ -71,7 +77,10 @@ export class MoviesService {
   }
 
   async remove(id: number) {
-    const movie = await this.movieRepository.findOne({ where: { id } });
+    const movie = await this.movieRepository.findOne({
+      where: { id, is_deleted: false },
+    });
+
     if (!movie) {
       throw new I18nException(
         'events.movie.notFound',
@@ -79,6 +88,9 @@ export class MoviesService {
         this.i18n,
       );
     }
-    return this.movieRepository.delete(id);
+
+    movie.is_deleted = true;
+    await this.movieRepository.save(movie);
+    return movie;
   }
 }

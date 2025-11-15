@@ -14,6 +14,7 @@ import { I18nException } from '@/common/exceptions/i18n.exception';
 import { LicensesService } from '../licenses/licenses.service';
 import { UpdateTrackLicenseStatusDto } from './dto/updateTrackLicenseStatus-track.dto';
 import { I18nService } from 'nestjs-i18n';
+import { Movie } from '../movies/entities/movie.entity';
 
 @Injectable()
 export class TracksService {
@@ -26,6 +27,8 @@ export class TracksService {
     private sceneRepository: Repository<Scene>,
     private licenseService: LicensesService,
     private readonly i18n: I18nService,
+    @InjectRepository(Movie)
+    private movieRepository: Repository<Movie>,
   ) {}
 
   async create(createTrackDto: CreateTrackDto) {
@@ -35,9 +38,11 @@ export class TracksService {
     const [song, scene] = await Promise.all([
       this.songRepository.findOneBy({
         id: song_id,
+        is_deleted: false,
       }),
       this.sceneRepository.findOneBy({
         id: scene_id,
+        is_deleted: false,
       }),
     ]);
 
@@ -77,7 +82,23 @@ export class TracksService {
     const { page = 1, limit = 10 } = findAllByMovieIdTrackDto;
     const { limit: limitPage, skip } = calculatePagination(page, limit);
 
-    const where: FindOptionsWhere<Track> = { scene: { movie_id: movieId } };
+    const movie = await this.movieRepository.findOneBy({
+      id: movieId,
+      is_deleted: false,
+    });
+
+    if (!movie) {
+      throw new I18nException(
+        'events.movie.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
+    }
+
+    const where: FindOptionsWhere<Track> = {
+      scene: { movie_id: movie.id },
+      is_deleted: false,
+    };
 
     const [tracks, count] = await this.trackRepository.findAndCount({
       skip,
@@ -100,7 +121,23 @@ export class TracksService {
   ) {
     const { page = 1, limit = 10 } = findAllBySceneIdTrackDto;
     const { limit: limitPage, skip } = calculatePagination(page, limit);
-    const where: FindOptionsWhere<Track> = { scene: { id: sceneId } };
+
+    const scene = await this.sceneRepository.findOneBy({
+      id: sceneId,
+      is_deleted: false,
+    });
+
+    if (!scene) {
+      throw new I18nException(
+        'events.scene.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
+    }
+
+    const where: FindOptionsWhere<Track> = {
+      scene: { id: scene.id, is_deleted: false },
+    };
 
     const [tracks, count] = await this.trackRepository.findAndCount({
       where,
@@ -118,7 +155,10 @@ export class TracksService {
   }
 
   async findOne(id: number) {
-    const track = await this.trackRepository.findOneBy({ id });
+    const track = await this.trackRepository.findOneBy({
+      id,
+    });
+
     if (!track) {
       throw new I18nException(
         'events.track.notFound',
@@ -165,6 +205,7 @@ export class TracksService {
         license: {
           id: true,
         },
+        is_deleted: false,
       },
     });
 
@@ -179,7 +220,11 @@ export class TracksService {
     await this.licenseService.updateStatus(track.license.id, { status });
   }
   async remove(id: number) {
-    const track = await this.trackRepository.findOneBy({ id });
+    const track = await this.trackRepository.findOneBy({
+      id,
+      is_deleted: false,
+    });
+
     if (!track) {
       throw new I18nException(
         'events.track.notFound',
@@ -187,6 +232,8 @@ export class TracksService {
         this.i18n,
       );
     }
-    await this.trackRepository.delete(id);
+
+    track.is_deleted = true;
+    await this.trackRepository.save(track);
   }
 }

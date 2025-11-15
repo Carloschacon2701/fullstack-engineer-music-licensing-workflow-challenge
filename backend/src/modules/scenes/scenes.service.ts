@@ -23,7 +23,10 @@ export class ScenesService {
 
   async create(createSceneDto: CreateSceneDto) {
     const { movie_id, title, description } = createSceneDto;
-    const movie = await this.movieRepository.findOneBy({ id: movie_id });
+    const movie = await this.movieRepository.findOneBy({
+      id: movie_id,
+      is_deleted: false,
+    });
 
     if (!movie) {
       throw new I18nException(
@@ -51,7 +54,7 @@ export class ScenesService {
     const [scenes, total] = await this.sceneRepository.findAndCount({
       skip,
       take: limit,
-      where: { movie_id },
+      where: { movie_id, is_deleted: false },
     });
     return {
       data: scenes,
@@ -60,7 +63,10 @@ export class ScenesService {
   }
 
   async findOne(id: number) {
-    const scene = await this.sceneRepository.findOneBy({ id });
+    const scene = await this.sceneRepository.findOneBy({
+      id,
+      is_deleted: false,
+    });
     if (!scene) {
       throw new I18nException(
         'events.scene.notFound',
@@ -72,7 +78,11 @@ export class ScenesService {
   }
 
   async update(id: number, updateSceneDto: UpdateSceneDto) {
-    const scene = await this.sceneRepository.findOneBy({ id });
+    const scene = await this.sceneRepository.findOneBy({
+      id,
+      is_deleted: false,
+    });
+
     if (!scene) {
       throw new I18nException(
         'events.scene.notFound',
@@ -80,12 +90,17 @@ export class ScenesService {
         this.i18n,
       );
     }
+
     await this.sceneRepository.update(id, updateSceneDto);
     return this.findOne(id);
   }
 
   async remove(id: number) {
-    const scene = await this.sceneRepository.findOneBy({ id });
+    const scene = await this.sceneRepository.findOneBy({
+      id,
+      is_deleted: false,
+    });
+
     if (!scene) {
       throw new I18nException(
         'events.scene.notFound',
@@ -93,7 +108,9 @@ export class ScenesService {
         this.i18n,
       );
     }
-    await this.sceneRepository.delete(id);
+
+    scene.is_deleted = true;
+    await this.sceneRepository.save(scene);
     return scene;
   }
 }

@@ -29,7 +29,8 @@ export class SongsService {
     const { page = 1, limit = 10, title, artist } = findAllSongDto;
     const { limit: limitPage, skip } = calculatePagination(page, limit);
 
-    const where: FindOptionsWhere<Song> = {};
+    const where: FindOptionsWhere<Song> = { is_deleted: false };
+
     if (title) {
       where.title = Like(`%${title}%`);
     }
@@ -48,7 +49,8 @@ export class SongsService {
   }
 
   async findOne(id: number) {
-    const song = await this.songRepository.findOneBy({ id });
+    const song = await this.songRepository.findOneBy({ id, is_deleted: false });
+
     if (!song) {
       throw new I18nException(
         'events.song.notFound',
@@ -56,6 +58,7 @@ export class SongsService {
         this.i18n,
       );
     }
+
     return song;
   }
 
@@ -74,7 +77,7 @@ export class SongsService {
   }
 
   async remove(id: number) {
-    const song = await this.songRepository.findOneBy({ id });
+    const song = await this.songRepository.findOneBy({ id, is_deleted: false });
     if (!song) {
       throw new I18nException(
         'events.song.notFound',
@@ -82,7 +85,10 @@ export class SongsService {
         this.i18n,
       );
     }
-    await this.songRepository.delete(id);
+
+    song.is_deleted = true;
+    await this.songRepository.save(song);
+
     return song;
   }
 }
