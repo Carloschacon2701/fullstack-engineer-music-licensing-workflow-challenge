@@ -10,5 +10,12 @@
   },
   "track": {
     "notFound": "Pista no encontrada"
+  },
+  "license": {
+    "notFound": "Licencia no encontrada",
+    "status": {
+      "alreadyGenerated": "La licencia ya ha sido generada",
+      "notAllowed": "El estado de la licencia no es permitido"
+    }
   }
 }

@@ -10,5 +10,12 @@
   },
   "track": {
     "notFound": "Track not found"
+  },
+  "license": {
+    "notFound": "License not found",
+    "status": {
+      "alreadyGenerated": "The license has already been generated",
+      "notAllowed": "The license status is not allowed"
+    }
   }
 }
