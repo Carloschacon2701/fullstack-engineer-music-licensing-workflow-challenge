@@ -3,11 +3,11 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   Query,
   ParseIntPipe,
+  Put,
 } from '@nestjs/common';
 import { ScenesService } from './scenes.service';
 import { CreateSceneDto } from './dto/create-scene.dto';
