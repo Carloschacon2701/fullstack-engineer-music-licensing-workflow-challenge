@@ -9,6 +9,7 @@ import { License } from './entities/license.entity';
 import { LicenseStatusEnum } from './entities/license.status.enum';
 import { LicenseStatusHistory } from './entities/license-status-history.entity';
 import { UpdateLicenseStatusDto } from './dto/updateStatus-license.dto';
+import { WebsocketGateway } from '../websocket/websocket.gateway';
 
 @Injectable()
 export class LicensesService {
@@ -21,10 +22,25 @@ export class LicensesService {
     private licenseRepository: Repository<License>,
     @InjectRepository(LicenseStatusHistory)
     private licenseStatusHistoryRepository: Repository<LicenseStatusHistory>,
+    private websocketGateway: WebsocketGateway,
   ) {}
 
-  private async updateLicenseStatus(license: License, statusId: number) {
-    this.licenseRepository.update(license.id, {
+  private getStatusName(statusId: LicenseStatusEnum): string {
+    const statusMap: Record<LicenseStatusEnum, string> = {
+      [LicenseStatusEnum.PENDING]: 'PENDING',
+      [LicenseStatusEnum.IN_NEGOTIATION]: 'IN_NEGOTIATION',
+      [LicenseStatusEnum.CANCELLED]: 'CANCELLED',
+      [LicenseStatusEnum.APPROVED]: 'APPROVED',
+      [LicenseStatusEnum.REJECTED]: 'REJECTED',
+    };
+    return statusMap[statusId] || 'UNKNOWN';
+  }
+
+  private async updateLicenseStatus(
+    license: License,
+    statusId: LicenseStatusEnum,
+  ) {
+    await this.licenseRepository.update(license.id, {
       status_id: statusId,
     });
     const licenseStatusHistory = this.licenseStatusHistoryRepository.create({
@@ -33,6 +49,14 @@ export class LicensesService {
     });
 
     await this.licenseStatusHistoryRepository.save(licenseStatusHistory);
+
+    const statusName = this.getStatusName(statusId);
+    this.websocketGateway.emitLicenseStatusUpdate(
+      license.id,
+      statusId,
+      statusName,
+      license.track_id,
+    );
   }
 
   private async statusMachine(
@@ -134,6 +158,7 @@ export class LicensesService {
   ) {
     const { status } = updateLicenseStatusDto;
     const license = await this.licenseRepository.findOneBy({ id });
+
     if (!license) {
       throw new I18nException('license.notFound', HttpStatus.NOT_FOUND);
     }
