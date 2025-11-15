@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { CreateSongDto } from './dto/create-song.dto';
 import { UpdateSongDto } from './dto/update-song.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -12,6 +12,8 @@ import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
 export class SongsService {
+  private readonly logger = new Logger(SongsService.name);
+
   constructor(
     @InjectRepository(Song)
     private songRepository: Repository<Song>,
@@ -22,6 +24,11 @@ export class SongsService {
     const { title, artist, genre } = createSongDto;
     const song = this.songRepository.create({ title, artist, genre });
     const savedSong = await this.songRepository.save(song);
+
+    this.logger.log(
+      `Song created: ID ${savedSong.id} - "${title}" by ${artist}`,
+    );
+
     return savedSong;
   }
 
@@ -73,6 +80,9 @@ export class SongsService {
     }
     Object.assign(song, updateSongDto);
     const updatedSong = await this.songRepository.save(song);
+
+    this.logger.log(`Song updated: ID ${id}`);
+
     return updatedSong;
   }
 
@@ -88,6 +98,8 @@ export class SongsService {
 
     song.is_deleted = true;
     await this.songRepository.save(song);
+
+    this.logger.log(`Song ${id} soft deleted`);
 
     return song;
   }

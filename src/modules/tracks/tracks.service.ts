@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { CreateTrackDto } from './dto/create-track.dto';
 import { UpdateTrackDto } from './dto/update-track.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -18,6 +18,8 @@ import { Movie } from '../movies/entities/movie.entity';
 
 @Injectable()
 export class TracksService {
+  private readonly logger = new Logger(TracksService.name);
+
   constructor(
     @InjectRepository(Track)
     private trackRepository: Repository<Track>,
@@ -70,6 +72,11 @@ export class TracksService {
     });
 
     const savedTrack = await this.trackRepository.save(track);
+
+    this.logger.log(
+      `Track created: ID ${savedTrack.id} for scene ${scene_id} with song ${song_id}`,
+    );
+
     await this.licenseService.create({ track_id: savedTrack.id });
 
     return savedTrack;
@@ -234,6 +241,8 @@ export class TracksService {
 
     track.is_deleted = true;
     await this.trackRepository.save(track);
+
+    this.logger.log(`Track ${id} soft deleted`);
 
     await this.licenseService.remove(track.license.id);
   }

@@ -1,5 +1,5 @@
 /* e */
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { CreateMovieDto } from './dto/create-movie.dto';
 import { UpdateMovieDto } from './dto/update-movie.dto';
 import { FindAllMoviesDto } from './dto/findAll-movies.dto';
@@ -13,12 +13,18 @@ import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
 export class MoviesService {
+  private readonly logger = new Logger(MoviesService.name);
+
   constructor(
     @InjectRepository(Movie) private movieRepository: Repository<Movie>,
     private readonly i18n: I18nService,
   ) {}
   async create(createMovieDto: CreateMovieDto) {
-    return this.movieRepository.save(createMovieDto);
+    const movie = await this.movieRepository.save(createMovieDto);
+
+    this.logger.log(`Movie created: ID ${movie.id} - "${movie.title}"`);
+
+    return movie;
   }
 
   async findAll(findAllMoviesDto: FindAllMoviesDto) {
@@ -73,7 +79,12 @@ export class MoviesService {
         this.i18n,
       );
     }
-    return this.movieRepository.update(id, updateMovieDto);
+
+    await this.movieRepository.update(id, updateMovieDto);
+
+    this.logger.log(`Movie updated: ID ${id}`);
+
+    return this.movieRepository.findOne({ where: { id } });
   }
 
   async remove(id: number) {
@@ -91,6 +102,9 @@ export class MoviesService {
 
     movie.is_deleted = true;
     await this.movieRepository.save(movie);
+
+    this.logger.log(`Movie ${id} soft deleted`);
+
     return movie;
   }
 }

@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { CreateLicenseDto } from './dto/create-license.dto';
 import { I18nException } from '@/common/exceptions/i18n.exception';
 import { Track } from '../tracks/entities/track.entity';
@@ -14,6 +14,8 @@ import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
 export class LicensesService {
+  private readonly logger = new Logger(LicensesService.name);
+
   constructor(
     @InjectRepository(Track)
     private trackRepository: Repository<Track>,
@@ -42,6 +44,9 @@ export class LicensesService {
     license: License,
     statusId: LicenseStatusEnum,
   ) {
+    const previousStatus = license.status_id;
+    const statusName = this.getStatusName(statusId);
+
     await this.licenseRepository.update(license.id, {
       status_id: statusId,
     });
@@ -52,7 +57,10 @@ export class LicensesService {
 
     await this.licenseStatusHistoryRepository.save(licenseStatusHistory);
 
-    const statusName = this.getStatusName(statusId);
+    this.logger.log(
+      `License ${license.id} status changed: ${this.getStatusName(previousStatus)} -> ${statusName}`,
+    );
+
     this.websocketGateway.emitLicenseStatusUpdate(
       license.id,
       statusId,
@@ -179,6 +187,10 @@ export class LicensesService {
 
     const savedLicense = await this.licenseRepository.save(license);
 
+    this.logger.log(
+      `License created for track ${track_id} with ID ${savedLicense.id}`,
+    );
+
     await this.statusMachine(LicenseStatusEnum.PENDING, savedLicense, {
       created: true,
     });
@@ -216,6 +228,10 @@ export class LicensesService {
         this.i18n,
       );
     }
+
+    this.logger.log(
+      `Updating license ${id} status to ${this.getStatusName(status)}`,
+    );
     await this.statusMachine(status, license);
   }
 
@@ -229,6 +245,8 @@ export class LicensesService {
         this.i18n,
       );
     }
+
+    this.logger.log(`Removing license ${id} (cancelling status)`);
     await this.statusMachine(LicenseStatusEnum.CANCELLED, license, {
       removed: true,
     });

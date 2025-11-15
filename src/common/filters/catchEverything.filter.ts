@@ -15,10 +15,12 @@ export class CatchEverythingFilter implements ExceptionFilter {
     const response = ctx.getResponse();
     const request = ctx.getRequest();
 
+    const errorMessage = exception?.message || 'Unknown error';
+    const errorStack = exception?.stack || 'No stack trace available';
+
     this.logger.error(
-      `Exception caught: ${exception.message}`,
-      exception.stack,
-      'CatchEverythingFilter',
+      `${request.method} ${request.url} - Exception: ${errorMessage}`,
+      errorStack,
     );
 
     if (!(exception instanceof HttpException)) {

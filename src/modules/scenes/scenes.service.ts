@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { CreateSceneDto } from './dto/create-scene.dto';
 import { UpdateSceneDto } from './dto/update-scene.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -13,6 +13,8 @@ import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
 export class ScenesService {
+  private readonly logger = new Logger(ScenesService.name);
+
   constructor(
     @InjectRepository(Scene)
     private sceneRepository: Repository<Scene>,
@@ -42,9 +44,13 @@ export class ScenesService {
       description,
     });
 
-    await this.sceneRepository.save(scene);
+    const savedScene = await this.sceneRepository.save(scene);
 
-    return scene;
+    this.logger.log(
+      `Scene created: ID ${savedScene.id} - "${title}" for movie ${movie_id}`,
+    );
+
+    return savedScene;
   }
 
   async findAllByMovie(movie_id: number, findAllSceneDto: FindAllSceneDto) {
@@ -92,6 +98,9 @@ export class ScenesService {
     }
 
     await this.sceneRepository.update(id, updateSceneDto);
+
+    this.logger.log(`Scene updated: ID ${id}`);
+
     return this.findOne(id);
   }
 
@@ -111,6 +120,9 @@ export class ScenesService {
 
     scene.is_deleted = true;
     await this.sceneRepository.save(scene);
+
+    this.logger.log(`Scene ${id} soft deleted`);
+
     return scene;
   }
 }
