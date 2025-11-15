@@ -1,98 +1,470 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# 🎬 Backend - Music Licensing Workflow API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+This is the backend API for the **Music Licensing Workflow** system, built to help **ACME BROS PICTURES** manage the music licensing process for their movies. The system tracks tracks, songs, and their licensing status through a stateful workflow with real-time updates.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 📋 Table of Contents
 
-## Description
+- [Overview](#overview)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Data Model](#data-model)
+- [API Endpoints](#api-endpoints)
+- [Real-Time Updates](#real-time-updates)
+- [Setup Instructions](#setup-instructions)
+- [Docker Setup](#docker-setup)
+- [Database Migrations](#database-migrations)
+- [Testing](#testing)
+- [Environment Variables](#environment-variables)
+- [Tech Decisions & Tradeoffs](#tech-decisions--tradeoffs)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 🎯 Overview
 
-## Project setup
+This backend provides a RESTful API to manage:
 
-```bash
-$ npm install
+- **Movies** - Film projects that contain multiple scenes
+- **Scenes** - Individual scenes within a movie
+- **Tracks** - Music tracks associated with scenes, specifying start and end times
+- **Songs** - Song metadata (title, artist, genre)
+- **Licenses** - Licensing status tracking with stateful workflow management
+
+The system enables real-time visibility of licensing status updates through WebSocket connections, allowing multiple users to see changes immediately as they occur.
+
+## 🛠 Tech Stack
+
+### Core Technologies
+
+- **Framework:** [NestJS](https://nestjs.com/) (v11.0.1) - Progressive Node.js framework
+- **Language:** TypeScript (v5.7.3)
+- **Database:** PostgreSQL (latest) - Primary relational database
+- **ORM:** TypeORM (v0.3.27) - TypeScript ORM for database management
+- **WebSockets:** Socket.IO via `@nestjs/platform-socket.io` - Real-time communication
+- **Validation:** `class-validator` & `class-transformer` - DTO validation
+- **Internationalization:** `nestjs-i18n` - Multi-language support for error messages
+
+### Development Tools
+
+- **Testing:** Jest - Unit and E2E testing
+- **Linting:** ESLint with TypeScript support
+- **Formatting:** Prettier
+- **Containerization:** Docker with multi-stage builds
+
+## 📁 Project Structure
+
+```
+backend/
+├── src/
+│   ├── modules/              # Feature modules
+│   │   ├── movies/          # Movie management
+│   │   ├── scenes/          # Scene management
+│   │   ├── tracks/          # Track management (core feature)
+│   │   ├── songs/           # Song catalog
+│   │   ├── licenses/       # License status workflow
+│   │   ├── websocket/       # Real-time updates gateway
+│   │   └── health/          # Health check endpoint
+│   ├── config/              # Configuration modules
+│   │   ├── app.config.ts   # Application configuration
+│   │   ├── typeorm.config.ts # Database configuration
+│   │   └── i18n.config.ts  # Internationalization config
+│   ├── db/
+│   │   ├── migrations/      # Database migrations
+│   │   ├── seeders/         # Database seeders
+│   │   └── datasource.ts    # TypeORM datasource
+│   ├── common/              # Shared utilities
+│   │   ├── exceptions/      # Custom exceptions
+│   │   └── filters/         # Exception filters
+│   ├── utils/               # Utility functions
+│   ├── i18n/                # Translation files
+│   └── main.ts              # Application entry point
+├── test/                     # E2E tests
+├── scripts/                  # Utility scripts
+├── Dockerfile               # Docker image definition
+├── docker-compose.yml       # Docker Compose configuration
+└── package.json             # Dependencies and scripts
 ```
 
-## Compile and run the project
+## 🗄 Data Model
 
-```bash
-# development
-$ npm run start
+### Entity Relationships
 
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+```
+Movie (1) ──< (N) Scene (1) ──< (N) Track (1) ──< (1) License
+                                                      │
+                                                      │
+                                                      ▼
+                                                  Status
+                                                      │
+                                                      │
+                                                      ▼
+                                            LicenseStatusHistory
 ```
 
-## Run tests
+### Entities
 
-```bash
-# unit tests
-$ npm run test
+#### Movie
 
-# e2e tests
-$ npm run test:e2e
+- `id` - Primary key
+- `title` - Movie title
+- `description` - Movie description
+- `created_at`, `updated_at` - Timestamps
+- `is_deleted` - Soft delete flag
+- **Relations:** One-to-Many with `Scene`
 
-# test coverage
-$ npm run test:cov
+#### Scene
+
+- `id` - Primary key
+- `movie_id` - Foreign key to Movie
+- `title` - Scene title
+- `description` - Scene description
+- `created_at`, `updated_at` - Timestamps
+- `is_deleted` - Soft delete flag
+- **Relations:** Many-to-One with `Movie`, One-to-Many with `Track`
+
+#### Track
+
+- `id` - Primary key
+- `scene_id` - Foreign key to Scene
+- `song_id` - Foreign key to Song
+- `start_time_seconds` - Track start time in scene
+- `end_time_seconds` - Track end time in scene
+- `created_at`, `updated_at` - Timestamps
+- `is_deleted` - Soft delete flag
+- **Relations:** Many-to-One with `Scene` and `Song`, One-to-One with `License`
+
+#### Song
+
+- `id` - Primary key
+- `title` - Song title
+- `artist` - Artist name
+- `genre` - Song genre
+- `created_at`, `updated_at` - Timestamps
+- `is_deleted` - Soft delete flag
+- **Relations:** One-to-Many with `Track`
+
+#### License
+
+- `id` - Primary key
+- `track_id` - Foreign key to Track (unique)
+- `status_id` - Foreign key to Status
+- **Relations:** One-to-One with `Track`, Many-to-One with `Status`, One-to-Many with `LicenseStatusHistory`
+
+#### Status
+
+- `id` - Primary key
+- `name` - Status name (e.g., "Pending", "In Negotiation", "Approved", "Rejected")
+- **Relations:** One-to-Many with `License` and `LicenseStatusHistory`
+
+#### LicenseStatusHistory
+
+- Tracks the history of status changes for licenses
+- **Relations:** Many-to-One with `License` and `Status`
+
+## 🔌 API Endpoints
+
+### Movies
+
+- `POST /movies` - Create a new movie
+- `GET /movies` - Get all movies (with pagination)
+- `GET /movies/:id` - Get a movie by ID
+- `PUT /movies/:id` - Update a movie
+- `DELETE /movies/:id` - Soft delete a movie
+
+### Scenes
+
+- `POST /scenes` - Create a new scene
+- `GET /scenes/movie/:movie_id` - Get all scenes for a movie (with pagination)
+- `GET /scenes/:id` - Get a scene by ID
+- `PUT /scenes/:id` - Update a scene
+- `DELETE /scenes/:id` - Soft delete a scene
+
+### Songs
+
+- `POST /songs` - Create a new song
+- `GET /songs` - Get all songs (with pagination)
+- `GET /songs/:id` - Get a song by ID
+- `PUT /songs/:id` - Update a song
+- `DELETE /songs/:id` - Soft delete a song
+
+### Tracks (Core Feature)
+
+- `POST /tracks` - Create a track and associate a song
+  - **Body:** `{ scene_id, song_id, start_time_seconds, end_time_seconds }`
+  - **Note:** Automatically creates a License with default status
+- `GET /tracks/:id` - Get a track by ID (includes license status)
+- `GET /tracks/scene/:sceneId` - Get all tracks for a scene (with pagination)
+- `GET /tracks/movie/:movieId` - Get all tracks for a movie (with pagination)
+- `PUT /tracks/:id` - Update a track
+- `PUT /tracks/:id/license/status` - **Update license status** (triggers WebSocket event)
+  - **Body:** `{ status_id }`
+- `DELETE /tracks/:id` - Soft delete a track
+
+### Licenses
+
+- `GET /licenses/:id` - Get a license by ID (includes status and history)
+
+### Health Check
+
+- `GET /health` - Health check endpoint
+
+## 🔄 Real-Time Updates
+
+The system implements **WebSocket** support using Socket.IO for real-time license status updates.
+
+### WebSocket Gateway
+
+- **Module:** `WebsocketModule`
+- **Gateway:** `WebsocketGateway`
+- **Event:** `licenseStatusUpdate`
+
+### How It Works
+
+1. When a license status is updated via `PUT /tracks/:id/license/status`, the system:
+   - Updates the license status in the database
+   - Records the status change in `LicenseStatusHistory`
+   - Emits a `licenseStatusUpdate` event to all connected WebSocket clients
+
+2. **Event Payload:**
+
+   ```json
+   {
+     "licenseId": 1,
+     "statusId": 2,
+     "statusName": "In Negotiation",
+     "trackId": 1,
+     "timestamp": "2024-01-15T10:30:00Z"
+   }
+   ```
+
+3. **Client Connection:**
+   - Connect to the WebSocket server
+   - Listen for `licenseStatusUpdate` events
+   - Update UI in real-time when status changes occur
+
+### Example Client Code
+
+```javascript
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:3000');
+
+socket.on('licenseStatusUpdate', (update) => {
+  console.log('License status updated:', update);
+  // Update your UI here
+});
 ```
 
-## Deployment
+## 🚀 Setup Instructions
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### Prerequisites
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+- Node.js (v22.20.0 or compatible)
+- PostgreSQL (latest)
+- npm or yarn
+
+### Local Development Setup
+
+1. **Clone the repository** (if not already done)
+
+2. **Navigate to the backend directory:**
+
+   ```bash
+   cd backend
+   ```
+
+3. **Install dependencies:**
+
+   ```bash
+   npm install
+   ```
+
+4. **Set up environment variables:**
+   Create a `.env` file in the `backend` directory:
+
+   ```env
+   DB_HOST=localhost
+   DB_PORT=5432
+   DB_USER=postgres
+   DB_PASSWORD=postgres
+   DB_NAME=music_licensing
+   PORT=3000
+   FALLBACK_LANGUAGE=en
+   ```
+
+5. **Start PostgreSQL** (if not using Docker):
+
+   ```bash
+   # Make sure PostgreSQL is running locally
+   ```
+
+6. **Run database migrations:**
+
+   ```bash
+   npm run db:migrate:run
+   ```
+
+7. **Seed the database (optional):**
+
+   ```bash
+   npm run db:seed
+   ```
+
+8. **Start the development server:**
+   ```bash
+   npm run start:dev
+   ```
+
+The API will be available at `http://localhost:3000`
+
+## 🐳 Docker Setup
+
+### Using Docker Compose (Recommended)
+
+The project includes a `docker-compose.yml` file that sets up both the backend and PostgreSQL database.
+
+1. **Create a `.env` file** in the `backend` directory with the required variables (see [Environment Variables](#environment-variables))
+
+2. **Build and start the services:**
+
+   ```bash
+   cd backend
+   docker-compose up --build
+   ```
+
+3. **Run migrations** (first time only):
+
+   ```bash
+   docker-compose exec backend npm run db:migrate:run
+   ```
+
+4. **Seed the database** (optional):
+   ```bash
+   docker-compose exec backend npm run db:seed
+   ```
+
+The services will be available at:
+
+- **API:** `http://localhost:3000`
+- **PostgreSQL:** `localhost:5432`
+
+### Docker Compose Services
+
+- **backend:** NestJS application (port 3000)
+- **postgres:** PostgreSQL database (port 5432)
+
+The backend service waits for PostgreSQL to be healthy before starting.
+
+## 📊 Database Migrations
+
+### Running Migrations
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# Run migrations
+npm run db:migrate:run
+
+# Or using the migration script
+npm run db:migrate
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Creating New Migrations
 
-## Resources
+Migrations are automatically run on application startup when `migrationsRun: true` is set in the TypeORM configuration.
 
-Check out a few resources that may come in handy when working with NestJS:
+## 🌱 Database Seeders
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+The project includes seeders to populate the database with initial data:
 
-## Support
+- **Status seeder** - Creates default license statuses
+- **Movie seeder** - Creates sample movies
+- **Scene seeder** - Creates sample scenes
+- **Song seeder** - Creates sample songs
+- **Track seeder** - Creates sample tracks with licenses
+- **License seeder** - Creates sample licenses
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### Running Seeders
 
-## Stay in touch
+```bash
+npm run db:seed
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## 🧪 Testing
 
-## License
+### Running Tests
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+```bash
+# Unit tests
+npm run test
+
+# Watch mode
+npm run test:watch
+
+# Coverage
+npm run test:cov
+
+# E2E tests
+npm run test:e2e
+```
+
+### Test Structure
+
+- **Unit tests:** Located alongside source files (`.spec.ts`)
+- **E2E tests:** Located in the `test/` directory
+
+## 🔧 Environment Variables
+
+| Variable            | Description               | Default     |
+| ------------------- | ------------------------- | ----------- |
+| `DB_HOST`           | PostgreSQL host           | `localhost` |
+| `DB_PORT`           | PostgreSQL port           | `5432`      |
+| `DB_USER`           | Database user             | `postgres`  |
+| `DB_PASSWORD`       | Database password         | -           |
+| `DB_NAME`           | Database name             | -           |
+| `PORT`              | Application port          | `3000`      |
+| `FALLBACK_LANGUAGE` | Default language for i18n | `en`        |
+
+## 💡 Tech Decisions & Tradeoffs
+
+### Why NestJS?
+
+- **Modular architecture:** Clean separation of concerns with modules
+- **TypeScript-first:** Strong typing and better developer experience
+- **Built-in features:** Dependency injection, decorators, and excellent tooling
+- **Ecosystem:** Rich ecosystem with official integrations (TypeORM, WebSockets, etc.)
+
+### Why REST over GraphQL?
+
+- **Simplicity:** REST is straightforward for CRUD operations
+- **Caching:** Better HTTP caching support
+- **Familiarity:** Easier for frontend developers to consume
+- **Tradeoff:** GraphQL would provide more flexibility for complex queries, but REST is sufficient for this use case
+
+### Why PostgreSQL?
+
+- **Relational data:** Perfect fit for structured data with relationships
+- **ACID compliance:** Ensures data integrity for licensing workflows
+- **Mature ecosystem:** Excellent tooling and community support
+- **TypeORM integration:** Seamless integration with NestJS
+
+### Why WebSockets (Socket.IO)?
+
+- **Real-time updates:** Immediate notification of status changes
+- **Bidirectional communication:** Can extend to support client-to-server events
+- **Fallback support:** Socket.IO provides fallbacks for older browsers
+- **Tradeoff:** Server-Sent Events (SSE) would be simpler for one-way updates, but WebSockets provide more flexibility for future features
+
+### Why TypeORM?
+
+- **TypeScript support:** Native TypeScript support with decorators
+- **Active Record pattern:** Easy to use and understand
+- **Migration support:** Built-in migration system
+- **Relations:** Excellent support for entity relationships
+
+### Soft Deletes
+
+- **Implementation:** Using `is_deleted` flag instead of hard deletes
+- **Reason:** Preserves data history for auditing and recovery
+- **Tradeoff:** Requires filtering in queries, but provides better data integrity
+
+### Internationalization (i18n)
+
+- **Implementation:** Using `nestjs-i18n` for error messages
+- **Reason:** Better user experience with localized error messages
+- **Current support:** English and Spanish
