@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { API_PREFIX } from '@/common/constants/api.constants';
 
 export const swaggerConfig = (app: INestApplication) => {
   const config = new DocumentBuilder()
@@ -17,7 +18,7 @@ export const swaggerConfig = (app: INestApplication) => {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document, {
+  SwaggerModule.setup(`${API_PREFIX}/docs`, app, document, {
     swaggerOptions: {
       persistAuthorization: true,
     },

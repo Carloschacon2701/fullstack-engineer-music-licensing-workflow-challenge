@@ -4,11 +4,18 @@ import { CatchEverythingFilter } from './common/filters/catchEverything.filter';
 import { I18nValidationExceptionFilter, I18nValidationPipe } from 'nestjs-i18n';
 import { swaggerConfig } from './config/swagger.config';
 import { ClassSerializerInterceptor } from '@nestjs/common';
+import { API_PREFIX } from './common/constants/api.constants';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.enableCors();
+  app.enableCors({
+    origin: '*',
+    methods: ['GET', 'HEAD', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  });
+
+  app.setGlobalPrefix(API_PREFIX);
+
   app.useGlobalPipes(
     new I18nValidationPipe({
       transform: true,
