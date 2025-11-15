@@ -139,7 +139,16 @@ export class TracksService {
     updateLicenseStatusDto: UpdateTrackLicenseStatusDto,
   ) {
     const { status } = updateLicenseStatusDto;
-    const track = await this.trackRepository.findOneBy({ id });
+    const track = await this.trackRepository.findOne({
+      where: { id },
+      relations: { license: true },
+      select: {
+        id: true,
+        license: {
+          id: true,
+        },
+      },
+    });
 
     if (!track) {
       throw new I18nException('track.notFound', HttpStatus.NOT_FOUND);
