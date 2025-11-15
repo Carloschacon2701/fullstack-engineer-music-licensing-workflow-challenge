@@ -9,11 +9,13 @@ import { I18nException } from '@/common/exceptions/i18n.exception';
 import { FindOptionsWhere, Like, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Movie } from './entities/movie.entity';
+import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
 export class MoviesService {
   constructor(
     @InjectRepository(Movie) private movieRepository: Repository<Movie>,
+    private readonly i18n: I18nService,
   ) {}
   async create(createMovieDto: CreateMovieDto) {
     return this.movieRepository.save(createMovieDto);
@@ -46,7 +48,11 @@ export class MoviesService {
   async findOne(id: number) {
     const movie = await this.movieRepository.findOne({ where: { id } });
     if (!movie) {
-      throw new I18nException('movie.notFound', HttpStatus.NOT_FOUND);
+      throw new I18nException(
+        'events.movie.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
     }
     return movie;
   }
@@ -55,7 +61,11 @@ export class MoviesService {
     const movie = await this.movieRepository.findOne({ where: { id } });
 
     if (!movie) {
-      throw new I18nException('movie.notFound', HttpStatus.NOT_FOUND);
+      throw new I18nException(
+        'events.movie.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
     }
     return this.movieRepository.update(id, updateMovieDto);
   }
@@ -63,7 +73,11 @@ export class MoviesService {
   async remove(id: number) {
     const movie = await this.movieRepository.findOne({ where: { id } });
     if (!movie) {
-      throw new I18nException('movie.notFound', HttpStatus.NOT_FOUND);
+      throw new I18nException(
+        'events.movie.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
     }
     return this.movieRepository.delete(id);
   }

@@ -9,6 +9,7 @@ import { calculatePagination } from '@/utils/getSkipPage';
 import { calculatePaginationResponse } from '@/utils/calculatePaginationResponse';
 import { I18nException } from '@/common/exceptions/i18n.exception';
 import { Movie } from '../movies/entities/movie.entity';
+import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
 export class ScenesService {
@@ -17,6 +18,7 @@ export class ScenesService {
     private sceneRepository: Repository<Scene>,
     @InjectRepository(Movie)
     private movieRepository: Repository<Movie>,
+    private readonly i18n: I18nService,
   ) {}
 
   async create(createSceneDto: CreateSceneDto) {
@@ -24,7 +26,11 @@ export class ScenesService {
     const movie = await this.movieRepository.findOneBy({ id: movie_id });
 
     if (!movie) {
-      throw new I18nException('movie.notFound', HttpStatus.NOT_FOUND);
+      throw new I18nException(
+        'events.movie.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
     }
 
     const scene = this.sceneRepository.create({
@@ -56,7 +62,11 @@ export class ScenesService {
   async findOne(id: number) {
     const scene = await this.sceneRepository.findOneBy({ id });
     if (!scene) {
-      throw new I18nException('scene.notFound', HttpStatus.NOT_FOUND);
+      throw new I18nException(
+        'events.scene.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
     }
     return scene;
   }
@@ -64,7 +74,11 @@ export class ScenesService {
   async update(id: number, updateSceneDto: UpdateSceneDto) {
     const scene = await this.sceneRepository.findOneBy({ id });
     if (!scene) {
-      throw new I18nException('scene.notFound', HttpStatus.NOT_FOUND);
+      throw new I18nException(
+        'events.scene.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
     }
     await this.sceneRepository.update(id, updateSceneDto);
     return this.findOne(id);
@@ -73,7 +87,11 @@ export class ScenesService {
   async remove(id: number) {
     const scene = await this.sceneRepository.findOneBy({ id });
     if (!scene) {
-      throw new I18nException('scene.notFound', HttpStatus.NOT_FOUND);
+      throw new I18nException(
+        'events.scene.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
     }
     await this.sceneRepository.delete(id);
     return scene;

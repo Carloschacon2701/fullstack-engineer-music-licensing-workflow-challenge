@@ -13,6 +13,7 @@ import { Scene } from '../scenes/entities/scene.entity';
 import { I18nException } from '@/common/exceptions/i18n.exception';
 import { LicensesService } from '../licenses/licenses.service';
 import { UpdateTrackLicenseStatusDto } from './dto/updateTrackLicenseStatus-track.dto';
+import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
 export class TracksService {
@@ -24,6 +25,7 @@ export class TracksService {
     @InjectRepository(Scene)
     private sceneRepository: Repository<Scene>,
     private licenseService: LicensesService,
+    private readonly i18n: I18nService,
   ) {}
 
   async create(createTrackDto: CreateTrackDto) {
@@ -40,11 +42,19 @@ export class TracksService {
     ]);
 
     if (!song) {
-      throw new I18nException('song.notFound', HttpStatus.NOT_FOUND);
+      throw new I18nException(
+        'events.song.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
     }
 
     if (!scene) {
-      throw new I18nException('scene.notFound', HttpStatus.NOT_FOUND);
+      throw new I18nException(
+        'events.scene.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
     }
 
     const track = this.trackRepository.create({
@@ -110,7 +120,11 @@ export class TracksService {
   async findOne(id: number) {
     const track = await this.trackRepository.findOneBy({ id });
     if (!track) {
-      throw new I18nException('track.notFound', HttpStatus.NOT_FOUND);
+      throw new I18nException(
+        'events.track.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
     }
     return track;
   }
@@ -120,7 +134,11 @@ export class TracksService {
     const track = await this.trackRepository.findOneBy({ id });
 
     if (!track) {
-      throw new I18nException('track.notFound', HttpStatus.NOT_FOUND);
+      throw new I18nException(
+        'events.track.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
     }
     if (start_time_seconds) {
       track.start_time_seconds = start_time_seconds;
@@ -151,7 +169,11 @@ export class TracksService {
     });
 
     if (!track) {
-      throw new I18nException('track.notFound', HttpStatus.NOT_FOUND);
+      throw new I18nException(
+        'events.track.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
     }
 
     await this.licenseService.updateStatus(track.license.id, { status });
@@ -159,7 +181,11 @@ export class TracksService {
   async remove(id: number) {
     const track = await this.trackRepository.findOneBy({ id });
     if (!track) {
-      throw new I18nException('track.notFound', HttpStatus.NOT_FOUND);
+      throw new I18nException(
+        'events.track.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
     }
     await this.trackRepository.delete(id);
   }

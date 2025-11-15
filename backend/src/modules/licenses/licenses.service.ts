@@ -10,6 +10,7 @@ import { LicenseStatusEnum } from './entities/license.status.enum';
 import { LicenseStatusHistory } from './entities/license-status-history.entity';
 import { UpdateLicenseStatusDto } from './dto/updateStatus-license.dto';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
+import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
 export class LicensesService {
@@ -23,6 +24,7 @@ export class LicensesService {
     @InjectRepository(LicenseStatusHistory)
     private licenseStatusHistoryRepository: Repository<LicenseStatusHistory>,
     private websocketGateway: WebsocketGateway,
+    private readonly i18n: I18nService,
   ) {}
 
   private getStatusName(statusId: LicenseStatusEnum): string {
@@ -67,8 +69,9 @@ export class LicensesService {
     if (statusId === LicenseStatusEnum.PENDING) {
       if (currentStatus) {
         throw new I18nException(
-          'license.status.alreadyGenerated',
+          'events.license.status.alreadyGenerated',
           HttpStatus.BAD_REQUEST,
+          this.i18n,
         );
       }
 
@@ -80,8 +83,9 @@ export class LicensesService {
 
       if (!allowedStatuses.includes(currentStatus)) {
         throw new I18nException(
-          'license.status.notAllowed',
+          'events.license.status.notAllowed',
           HttpStatus.BAD_REQUEST,
+          this.i18n,
         );
       }
       await this.updateLicenseStatus(license, LicenseStatusEnum.APPROVED);
@@ -92,8 +96,9 @@ export class LicensesService {
 
       if (!allowedStatuses.includes(currentStatus)) {
         throw new I18nException(
-          'license.status.notAllowed',
+          'events.license.status.notAllowed',
           HttpStatus.BAD_REQUEST,
+          this.i18n,
         );
       }
       await this.updateLicenseStatus(license, LicenseStatusEnum.CANCELLED);
@@ -104,8 +109,9 @@ export class LicensesService {
 
       if (!allowedStatuses.includes(currentStatus)) {
         throw new I18nException(
-          'license.status.notAllowed',
+          'events.license.status.notAllowed',
           HttpStatus.BAD_REQUEST,
+          this.i18n,
         );
       }
       await this.updateLicenseStatus(license, LicenseStatusEnum.REJECTED);
@@ -116,8 +122,9 @@ export class LicensesService {
 
       if (!allowedStatuses.includes(currentStatus)) {
         throw new I18nException(
-          'license.status.notAllowed',
+          'events.license.status.notAllowed',
           HttpStatus.BAD_REQUEST,
+          this.i18n,
         );
       }
       await this.updateLicenseStatus(license, LicenseStatusEnum.IN_NEGOTIATION);
@@ -130,7 +137,11 @@ export class LicensesService {
     const track = await this.trackRepository.findOneBy({ id: track_id });
 
     if (!track) {
-      throw new I18nException('track.notFound', HttpStatus.NOT_FOUND);
+      throw new I18nException(
+        'events.track.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
     }
 
     const license = this.licenseRepository.create({
@@ -147,7 +158,11 @@ export class LicensesService {
   async findOne(id: number) {
     const license = await this.licenseRepository.findOneBy({ id });
     if (!license) {
-      throw new I18nException('license.notFound', HttpStatus.NOT_FOUND);
+      throw new I18nException(
+        'events.license.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
     }
     return license;
   }
@@ -160,7 +175,11 @@ export class LicensesService {
     const license = await this.licenseRepository.findOneBy({ id });
 
     if (!license) {
-      throw new I18nException('license.notFound', HttpStatus.NOT_FOUND);
+      throw new I18nException(
+        'events.license.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
     }
     await this.statusMachine(status, license);
   }

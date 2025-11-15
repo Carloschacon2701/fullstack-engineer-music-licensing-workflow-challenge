@@ -8,12 +8,14 @@ import { FindAllSongDto } from './dto/findAll-song.dto';
 import { calculatePagination } from '@/utils/getSkipPage';
 import { calculatePaginationResponse } from '@/utils/calculatePaginationResponse';
 import { I18nException } from '@/common/exceptions/i18n.exception';
+import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
 export class SongsService {
   constructor(
     @InjectRepository(Song)
     private songRepository: Repository<Song>,
+    private readonly i18n: I18nService,
   ) {}
 
   async create(createSongDto: CreateSongDto) {
@@ -48,7 +50,11 @@ export class SongsService {
   async findOne(id: number) {
     const song = await this.songRepository.findOneBy({ id });
     if (!song) {
-      throw new I18nException('song.notFound', HttpStatus.NOT_FOUND);
+      throw new I18nException(
+        'events.song.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
     }
     return song;
   }
@@ -56,7 +62,11 @@ export class SongsService {
   async update(id: number, updateSongDto: UpdateSongDto) {
     const song = await this.songRepository.findOneBy({ id });
     if (!song) {
-      throw new I18nException('song.notFound', HttpStatus.NOT_FOUND);
+      throw new I18nException(
+        'events.song.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
     }
     Object.assign(song, updateSongDto);
     const updatedSong = await this.songRepository.save(song);
@@ -66,7 +76,11 @@ export class SongsService {
   async remove(id: number) {
     const song = await this.songRepository.findOneBy({ id });
     if (!song) {
-      throw new I18nException('song.notFound', HttpStatus.NOT_FOUND);
+      throw new I18nException(
+        'events.song.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
     }
     await this.songRepository.delete(id);
     return song;

@@ -7,7 +7,7 @@ export const createI18nConfig = (configService: ConfigService): I18nOptions => {
   return {
     fallbackLanguage: configService.getOrThrow('FALLBACK_LANGUAGE'),
     loaderOptions: {
-      path: join(__dirname, '../src/i18n/'),
+      path: join(__dirname, '../i18n/'),
       watch: !isProd,
     },
   };
