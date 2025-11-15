@@ -186,8 +186,8 @@ export class TracksService {
     if (end_time_seconds) {
       track.end_time_seconds = end_time_seconds;
     }
+
     const savedTrack = await this.trackRepository.save(track);
-    await this.licenseService.create({ track_id: savedTrack.id });
 
     return savedTrack;
   }
@@ -220,9 +220,9 @@ export class TracksService {
     await this.licenseService.updateStatus(track.license.id, { status });
   }
   async remove(id: number) {
-    const track = await this.trackRepository.findOneBy({
-      id,
-      is_deleted: false,
+    const track = await this.trackRepository.findOne({
+      where: { id, is_deleted: false },
+      relations: { license: true },
     });
 
     if (!track) {
@@ -235,5 +235,7 @@ export class TracksService {
 
     track.is_deleted = true;
     await this.trackRepository.save(track);
+
+    await this.licenseService.remove(track.license.id);
   }
 }

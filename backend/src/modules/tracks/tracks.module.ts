@@ -7,11 +7,12 @@ import { Track } from './entities/track.entity';
 import { Song } from '../songs/entities/song.entity';
 import { Scene } from '../scenes/entities/scene.entity';
 import { License } from '../licenses/entities/license.entity';
+import { Movie } from '../movies/entities/movie.entity';
 
 @Module({
   imports: [
     LicensesModule,
-    TypeOrmModule.forFeature([Track, Song, Scene, License]),
+    TypeOrmModule.forFeature([Track, Song, Scene, License, Movie]),
   ],
   controllers: [TracksController],
   providers: [TracksService],

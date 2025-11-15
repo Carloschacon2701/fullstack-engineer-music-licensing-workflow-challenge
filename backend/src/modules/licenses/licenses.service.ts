@@ -64,10 +64,16 @@ export class LicensesService {
   private async statusMachine(
     statusId: LicenseStatusEnum,
     license: License,
+    options: {
+      created?: boolean;
+      removed?: boolean;
+    } = {},
   ): Promise<void> {
     const currentStatus = license.status_id;
+    const { created = false, removed = false } = options;
+
     if (statusId === LicenseStatusEnum.PENDING) {
-      if (currentStatus) {
+      if (currentStatus && !created) {
         throw new I18nException(
           'events.license.status.alreadyGenerated',
           HttpStatus.BAD_REQUEST,
@@ -93,6 +99,16 @@ export class LicensesService {
 
     if (statusId === LicenseStatusEnum.CANCELLED) {
       const allowedStatuses = [LicenseStatusEnum.PENDING];
+      const finalStatuses = [
+        LicenseStatusEnum.APPROVED,
+        LicenseStatusEnum.REJECTED,
+        LicenseStatusEnum.CANCELLED,
+      ];
+
+      if (removed && !finalStatuses.includes(currentStatus)) {
+        await this.updateLicenseStatus(license, LicenseStatusEnum.CANCELLED);
+        return;
+      }
 
       if (!allowedStatuses.includes(currentStatus)) {
         throw new I18nException(
@@ -146,17 +162,24 @@ export class LicensesService {
 
     const license = this.licenseRepository.create({
       track_id: track.id,
+      status_id: LicenseStatusEnum.PENDING,
     });
 
     const savedLicense = await this.licenseRepository.save(license);
 
-    await this.statusMachine(LicenseStatusEnum.PENDING, savedLicense);
+    await this.statusMachine(LicenseStatusEnum.PENDING, savedLicense, {
+      created: true,
+    });
 
     return savedLicense;
   }
 
   async findOne(id: number) {
-    const license = await this.licenseRepository.findOneBy({ id });
+    const license = await this.licenseRepository.findOne({
+      where: { id },
+      relations: ['track', 'status'],
+    });
+
     if (!license) {
       throw new I18nException(
         'events.license.notFound',
@@ -182,5 +205,20 @@ export class LicensesService {
       );
     }
     await this.statusMachine(status, license);
+  }
+
+  async remove(id: number) {
+    const license = await this.licenseRepository.findOneBy({ id });
+
+    if (!license) {
+      throw new I18nException(
+        'events.license.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
+    }
+    await this.statusMachine(LicenseStatusEnum.CANCELLED, license, {
+      removed: true,
+    });
   }
 }
