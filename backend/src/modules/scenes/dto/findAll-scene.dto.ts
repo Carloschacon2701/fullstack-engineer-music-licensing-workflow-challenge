@@ -1,13 +1,14 @@
-import { IsNumber, IsOptional, IsPositive } from 'class-validator';
+import { IsInt, IsOptional, IsPositive } from 'class-validator';
+import { i18nValidationMessage } from 'nestjs-i18n';
 
 export class FindAllSceneDto {
   @IsOptional()
-  @IsNumber()
-  @IsPositive()
+  @IsInt({ message: i18nValidationMessage('validation.isInt.limit') })
+  @IsPositive({ message: i18nValidationMessage('validation.isPositive.limit') })
   limit?: number;
 
   @IsOptional()
-  @IsNumber()
-  @IsPositive()
+  @IsInt({ message: i18nValidationMessage('validation.isInt.page') })
+  @IsPositive({ message: i18nValidationMessage('validation.isPositive.page') })
   page?: number;
 }
