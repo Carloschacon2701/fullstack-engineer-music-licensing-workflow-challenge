@@ -41,6 +41,7 @@ describe('TracksService', () => {
   const mockLicensesService = {
     create: jest.fn(),
     updateStatus: jest.fn(),
+    remove: jest.fn(),
   };
 
   const mockI18nService = {
@@ -402,7 +403,6 @@ describe('TracksService', () => {
 
       mockTrackRepository.findOneBy.mockResolvedValue(existingTrack);
       mockTrackRepository.save.mockResolvedValue(updatedTrack);
-      mockLicensesService.create.mockResolvedValue({});
 
       const result = await service.update(1, updateTrackDto);
 
@@ -410,9 +410,6 @@ describe('TracksService', () => {
       expect(mockTrackRepository.save).toHaveBeenCalledWith(
         expect.objectContaining(updateTrackDto),
       );
-      expect(mockLicensesService.create).toHaveBeenCalledWith({
-        track_id: 1,
-      });
       expect(result).toEqual(updatedTrack);
     });
 
@@ -439,7 +436,6 @@ describe('TracksService', () => {
 
       mockTrackRepository.findOneBy.mockResolvedValue(existingTrack);
       mockTrackRepository.save.mockResolvedValue(updatedTrack);
-      mockLicensesService.create.mockResolvedValue({});
 
       const result = await service.update(1, updateTrackDto);
 
@@ -481,14 +477,13 @@ describe('TracksService', () => {
       await service.updateLicenseStatus(1, updateLicenseStatusDto);
 
       expect(mockTrackRepository.findOne).toHaveBeenCalledWith({
-        where: { id: 1 },
+        where: { id: 1, is_deleted: false },
         relations: { license: true },
         select: {
           id: true,
           license: {
             id: true,
           },
-          is_deleted: false,
         },
       });
       expect(mockLicensesService.updateStatus).toHaveBeenCalledWith(
@@ -523,6 +518,9 @@ describe('TracksService', () => {
         is_deleted: false,
         created_at: new Date(),
         updated_at: new Date(),
+        license: {
+          id: 1,
+        },
       };
 
       const deletedTrack = {
@@ -530,33 +528,38 @@ describe('TracksService', () => {
         is_deleted: true,
       };
 
-      mockTrackRepository.findOneBy.mockResolvedValue(mockTrack);
+      mockTrackRepository.findOne.mockResolvedValue(mockTrack);
       mockTrackRepository.save.mockResolvedValue(deletedTrack);
+      mockLicensesService.remove.mockResolvedValue(undefined);
 
       await service.remove(1);
 
-      expect(mockTrackRepository.findOneBy).toHaveBeenCalledWith({
-        id: 1,
-        is_deleted: false,
+      expect(mockTrackRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 1, is_deleted: false },
+        relations: { license: true },
       });
       expect(mockTrackRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ is_deleted: true }),
       );
+      expect(mockLicensesService.remove).toHaveBeenCalledWith(1);
     });
 
     it('should throw I18nException when track is not found', async () => {
-      mockTrackRepository.findOneBy.mockResolvedValue(null);
+      mockTrackRepository.findOne.mockResolvedValue(null);
       mockI18nService.t.mockReturnValue('Track not found');
 
       await expect(service.remove(999)).rejects.toThrow(I18nException);
       expect(mockTrackRepository.save).not.toHaveBeenCalled();
+      expect(mockLicensesService.remove).not.toHaveBeenCalled();
     });
 
     it('should throw I18nException when track is already deleted', async () => {
-      mockTrackRepository.findOneBy.mockResolvedValue(null);
+      mockTrackRepository.findOne.mockResolvedValue(null);
       mockI18nService.t.mockReturnValue('Track not found');
 
       await expect(service.remove(1)).rejects.toThrow(I18nException);
+      expect(mockTrackRepository.save).not.toHaveBeenCalled();
+      expect(mockLicensesService.remove).not.toHaveBeenCalled();
     });
   });
 });

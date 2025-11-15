@@ -160,6 +160,18 @@ export class LicensesService {
       );
     }
 
+    const existingLicense = await this.licenseRepository.findOneBy({
+      track_id: track.id,
+    });
+
+    if (existingLicense) {
+      throw new I18nException(
+        'events.license.status.alreadyGenerated',
+        HttpStatus.BAD_REQUEST,
+        this.i18n,
+      );
+    }
+
     const license = this.licenseRepository.create({
       track_id: track.id,
       status_id: LicenseStatusEnum.PENDING,

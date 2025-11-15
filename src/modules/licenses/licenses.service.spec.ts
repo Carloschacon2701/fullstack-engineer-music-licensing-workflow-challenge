@@ -27,6 +27,7 @@ describe('LicensesService', () => {
     create: jest.fn(),
     save: jest.fn(),
     findOneBy: jest.fn(),
+    findOne: jest.fn(),
     update: jest.fn(),
   };
 
@@ -108,8 +109,9 @@ describe('LicensesService', () => {
       };
 
       mockTrackRepository.findOneBy.mockResolvedValue(mockTrack);
+      mockLicenseRepository.findOneBy.mockResolvedValue(null);
       mockLicenseRepository.create.mockReturnValue(mockLicense);
-      mockLicenseRepository.save.mockResolvedValue(mockLicense);
+      mockLicenseRepository.save.mockResolvedValue(savedLicense);
       mockLicenseRepository.update.mockResolvedValue({ affected: 1 });
       mockLicenseStatusHistoryRepository.create.mockReturnValue({
         license_id: 1,
@@ -123,8 +125,12 @@ describe('LicensesService', () => {
       expect(mockTrackRepository.findOneBy).toHaveBeenCalledWith({
         id: createLicenseDto.track_id,
       });
+      expect(mockLicenseRepository.findOneBy).toHaveBeenCalledWith({
+        track_id: mockTrack.id,
+      });
       expect(mockLicenseRepository.create).toHaveBeenCalledWith({
         track_id: mockTrack.id,
+        status_id: LicenseStatusEnum.PENDING,
       });
       expect(mockLicenseRepository.save).toHaveBeenCalled();
       expect(mockLicenseRepository.update).toHaveBeenCalledWith(1, {
@@ -136,7 +142,7 @@ describe('LicensesService', () => {
         'PENDING',
         1,
       );
-      expect(result).toEqual(mockLicense);
+      expect(result).toEqual(savedLicense);
     });
 
     it('should throw I18nException when track is not found', async () => {
@@ -174,13 +180,19 @@ describe('LicensesService', () => {
       };
 
       mockTrackRepository.findOneBy.mockResolvedValue(mockTrack);
-      mockLicenseRepository.create.mockReturnValue(existingLicense);
-      mockLicenseRepository.save.mockResolvedValue(existingLicense);
+      mockLicenseRepository.findOneBy.mockResolvedValue(existingLicense);
       mockI18nService.t.mockReturnValue('Status already generated');
 
       await expect(service.create(createLicenseDto)).rejects.toThrow(
         I18nException,
       );
+      expect(mockTrackRepository.findOneBy).toHaveBeenCalledWith({
+        id: createLicenseDto.track_id,
+      });
+      expect(mockLicenseRepository.findOneBy).toHaveBeenCalledWith({
+        track_id: mockTrack.id,
+      });
+      expect(mockLicenseRepository.create).not.toHaveBeenCalled();
     });
   });
 
@@ -190,22 +202,30 @@ describe('LicensesService', () => {
         id: 1,
         track_id: 1,
         status_id: LicenseStatusEnum.PENDING,
+        track: { id: 1 },
+        status: { id: 1, name: 'PENDING' },
       };
 
-      mockLicenseRepository.findOneBy.mockResolvedValue(mockLicense);
+      mockLicenseRepository.findOne.mockResolvedValue(mockLicense);
 
       const result = await service.findOne(1);
 
-      expect(mockLicenseRepository.findOneBy).toHaveBeenCalledWith({ id: 1 });
+      expect(mockLicenseRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 1 },
+        relations: ['track', 'status'],
+      });
       expect(result).toEqual(mockLicense);
     });
 
     it('should throw I18nException when license is not found', async () => {
-      mockLicenseRepository.findOneBy.mockResolvedValue(null);
+      mockLicenseRepository.findOne.mockResolvedValue(null);
       mockI18nService.t.mockReturnValue('License not found');
 
       await expect(service.findOne(999)).rejects.toThrow(I18nException);
-      expect(mockLicenseRepository.findOneBy).toHaveBeenCalledWith({ id: 999 });
+      expect(mockLicenseRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 999 },
+        relations: ['track', 'status'],
+      });
     });
   });
 

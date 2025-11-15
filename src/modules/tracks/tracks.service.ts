@@ -198,14 +198,13 @@ export class TracksService {
   ) {
     const { status } = updateLicenseStatusDto;
     const track = await this.trackRepository.findOne({
-      where: { id },
+      where: { id, is_deleted: false },
       relations: { license: true },
       select: {
         id: true,
         license: {
           id: true,
         },
-        is_deleted: false,
       },
     });
 
