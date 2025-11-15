@@ -25,6 +25,9 @@ export class Scene {
   @Column({ type: 'text' })
   description: string;
 
+  @Column({ type: 'boolean', default: false })
+  is_deleted: boolean;
+
   @CreateDateColumn()
   created_at: Date;
 

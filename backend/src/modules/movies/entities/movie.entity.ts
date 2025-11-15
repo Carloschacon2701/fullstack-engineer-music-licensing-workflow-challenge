@@ -25,6 +25,9 @@ export class Movie {
   @UpdateDateColumn({ name: 'updated_at' })
   updated_at: Date;
 
+  @Column({ type: 'boolean', default: false })
+  is_deleted: boolean;
+
   @OneToMany(() => Scene, (scene) => scene.movie)
   scenes: Scene[];
 }

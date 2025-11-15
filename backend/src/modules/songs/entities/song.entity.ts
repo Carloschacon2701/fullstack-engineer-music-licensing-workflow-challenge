@@ -22,6 +22,9 @@ export class Song {
   @Column({ type: 'varchar', length: 255 })
   genre: string;
 
+  @Column({ type: 'boolean', default: false })
+  is_deleted: boolean;
+
   @CreateDateColumn()
   created_at: Date;
 

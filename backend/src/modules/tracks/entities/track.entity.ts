@@ -29,6 +29,9 @@ export class Track {
   @Column({ type: 'int' })
   end_time_seconds: number;
 
+  @Column({ type: 'boolean', default: false })
+  is_deleted: boolean;
+
   @CreateDateColumn()
   created_at: Date;
 
