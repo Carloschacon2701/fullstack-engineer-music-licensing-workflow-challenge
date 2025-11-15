@@ -67,7 +67,16 @@ export class LicenseSeeder extends BaseSeeder {
       };
     });
 
-    await licenseRepository.upsert(licenses, ['track_id']);
+    for (const license of licenses) {
+      const existing = await licenseRepository.findOne({
+        where: { track_id: license.track_id },
+      });
+      if (existing) {
+        await licenseRepository.update(existing.id, license);
+      } else {
+        await licenseRepository.save(license);
+      }
+    }
     console.log(`   Upserted ${licenses.length} licenses`);
 
     const allLicenses = await licenseRepository.find({

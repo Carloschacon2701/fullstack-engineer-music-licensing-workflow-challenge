@@ -14,7 +14,16 @@ export class StatusSeeder extends BaseSeeder {
       { name: 'Rejected', id: LicenseStatusEnum.REJECTED },
     ];
 
-    await statusRepository.upsert(statuses, ['name']);
+    for (const status of statuses) {
+      const existing = await statusRepository.findOne({
+        where: { id: status.id },
+      });
+      if (existing) {
+        await statusRepository.update(status.id, status);
+      } else {
+        await statusRepository.save(status);
+      }
+    }
     console.log(`   Upserted ${statuses.length} statuses`);
   }
 }
