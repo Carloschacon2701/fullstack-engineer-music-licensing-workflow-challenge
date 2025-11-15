@@ -1,470 +1,432 @@
-# 🎬 Backend - Music Licensing Workflow API
+# 🎬 Music Licensing Workflow - Backend Documentation
 
-This is the backend API for the **Music Licensing Workflow** system, built to help **ACME BROS PICTURES** manage the music licensing process for their movies. The system tracks tracks, songs, and their licensing status through a stateful workflow with real-time updates.
+## 📋 Overview
 
-## 📋 Table of Contents
+This is the backend API for the **Music Licensing Workflow** system, designed to help **ACME BROS PICTURES** manage the music licensing process for their movies. The system allows tracking of music tracks associated with movie scenes, managing licensing status through a stateful workflow, and providing real-time updates to clients.
 
-- [Overview](#overview)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Data Model](#data-model)
-- [API Endpoints](#api-endpoints)
-- [Real-Time Updates](#real-time-updates)
-- [Setup Instructions](#setup-instructions)
-- [Docker Setup](#docker-setup)
-- [Database Migrations](#database-migrations)
-- [Testing](#testing)
-- [Environment Variables](#environment-variables)
-- [Tech Decisions & Tradeoffs](#tech-decisions--tradeoffs)
+## 🛠️ Tech Stack
 
-## 🎯 Overview
+- **Framework:** NestJS (TypeScript)
+- **Database:** PostgreSQL
+- **ORM:** TypeORM
+- **API:** REST API
+- **Real-time:** WebSockets (Socket.IO)
+- **Documentation:** Swagger/OpenAPI
+- **Validation:** class-validator & class-transformer
+- **Internationalization:** nestjs-i18n
+- **Containerization:** Docker
 
-This backend provides a RESTful API to manage:
+## 🏗️ Architecture
 
-- **Movies** - Film projects that contain multiple scenes
-- **Scenes** - Individual scenes within a movie
-- **Tracks** - Music tracks associated with scenes, specifying start and end times
-- **Songs** - Song metadata (title, artist, genre)
-- **Licenses** - Licensing status tracking with stateful workflow management
+The backend follows a **modular architecture** using NestJS modules:
 
-The system enables real-time visibility of licensing status updates through WebSocket connections, allowing multiple users to see changes immediately as they occur.
+- **Movies Module:** Manages movie entities
+- **Scenes Module:** Manages scene entities (belongs to movies)
+- **Songs Module:** Manages song catalog
+- **Tracks Module:** Manages tracks (associates songs to scenes with time ranges)
+- **Licenses Module:** Manages licensing workflow and status transitions
+- **WebSocket Module:** Handles real-time license status updates
+- **Health Module:** Provides health check endpoints
 
-## 🛠 Tech Stack
+### Key Features
 
-### Core Technologies
+- **Modular Design:** Each domain (movies, scenes, songs, tracks, licenses) is encapsulated in its own module
+- **State Machine:** License status transitions follow a defined workflow
+- **Real-time Updates:** WebSocket gateway broadcasts license status changes
+- **Soft Deletes:** Entities support soft deletion via `is_deleted` flag
+- **Internationalization:** Error messages and validation messages support multiple languages (EN/ES)
+- **API Documentation:** Swagger UI available at `/api/docs`
 
-- **Framework:** [NestJS](https://nestjs.com/) (v11.0.1) - Progressive Node.js framework
-- **Language:** TypeScript (v5.7.3)
-- **Database:** PostgreSQL (latest) - Primary relational database
-- **ORM:** TypeORM (v0.3.27) - TypeScript ORM for database management
-- **WebSockets:** Socket.IO via `@nestjs/platform-socket.io` - Real-time communication
-- **Validation:** `class-validator` & `class-transformer` - DTO validation
-- **Internationalization:** `nestjs-i18n` - Multi-language support for error messages
-
-### Development Tools
-
-- **Testing:** Jest - Unit and E2E testing
-- **Linting:** ESLint with TypeScript support
-- **Formatting:** Prettier
-- **Containerization:** Docker with multi-stage builds
-
-## 📁 Project Structure
-
-```
-backend/
-├── src/
-│   ├── modules/              # Feature modules
-│   │   ├── movies/          # Movie management
-│   │   ├── scenes/          # Scene management
-│   │   ├── tracks/          # Track management (core feature)
-│   │   ├── songs/           # Song catalog
-│   │   ├── licenses/       # License status workflow
-│   │   ├── websocket/       # Real-time updates gateway
-│   │   └── health/          # Health check endpoint
-│   ├── config/              # Configuration modules
-│   │   ├── app.config.ts   # Application configuration
-│   │   ├── typeorm.config.ts # Database configuration
-│   │   └── i18n.config.ts  # Internationalization config
-│   ├── db/
-│   │   ├── migrations/      # Database migrations
-│   │   ├── seeders/         # Database seeders
-│   │   └── datasource.ts    # TypeORM datasource
-│   ├── common/              # Shared utilities
-│   │   ├── exceptions/      # Custom exceptions
-│   │   └── filters/         # Exception filters
-│   ├── utils/               # Utility functions
-│   ├── i18n/                # Translation files
-│   └── main.ts              # Application entry point
-├── test/                     # E2E tests
-├── scripts/                  # Utility scripts
-├── Dockerfile               # Docker image definition
-├── docker-compose.yml       # Docker Compose configuration
-└── package.json             # Dependencies and scripts
-```
-
-## 🗄 Data Model
+## 📊 Data Model
 
 ### Entity Relationships
 
-```
-Movie (1) ──< (N) Scene (1) ──< (N) Track (1) ──< (1) License
-                                                      │
-                                                      │
-                                                      ▼
-                                                  Status
-                                                      │
-                                                      │
-                                                      ▼
-                                            LicenseStatusHistory
-```
+![alt ER-Diagram](docs/ER.png)
 
-### Entities
+### Core Entities
 
 #### Movie
 
-- `id` - Primary key
-- `title` - Movie title
-- `description` - Movie description
-- `created_at`, `updated_at` - Timestamps
-- `is_deleted` - Soft delete flag
-- **Relations:** One-to-Many with `Scene`
+- `id`: Primary key
+- `title`: Movie title
+- `description`: Movie description
+- `created_at`, `updated_at`: Timestamps
+- `is_deleted`: Soft delete flag
 
 #### Scene
 
-- `id` - Primary key
-- `movie_id` - Foreign key to Movie
-- `title` - Scene title
-- `description` - Scene description
-- `created_at`, `updated_at` - Timestamps
-- `is_deleted` - Soft delete flag
-- **Relations:** Many-to-One with `Movie`, One-to-Many with `Track`
-
-#### Track
-
-- `id` - Primary key
-- `scene_id` - Foreign key to Scene
-- `song_id` - Foreign key to Song
-- `start_time_seconds` - Track start time in scene
-- `end_time_seconds` - Track end time in scene
-- `created_at`, `updated_at` - Timestamps
-- `is_deleted` - Soft delete flag
-- **Relations:** Many-to-One with `Scene` and `Song`, One-to-One with `License`
+- `id`: Primary key
+- `movie_id`: Foreign key to Movie
+- `title`: Scene title
+- `description`: Scene description
+- `created_at`, `updated_at`: Timestamps
+- `is_deleted`: Soft delete flag
 
 #### Song
 
-- `id` - Primary key
-- `title` - Song title
-- `artist` - Artist name
-- `genre` - Song genre
-- `created_at`, `updated_at` - Timestamps
-- `is_deleted` - Soft delete flag
-- **Relations:** One-to-Many with `Track`
+- `id`: Primary key
+- `title`: Song title
+- `artist`: Artist name
+- `genre`: Song genre
+- `created_at`, `updated_at`: Timestamps
+- `is_deleted`: Soft delete flag
+
+#### Track
+
+- `id`: Primary key
+- `scene_id`: Foreign key to Scene
+- `song_id`: Foreign key to Song
+- `start_time_seconds`: Start time in seconds
+- `end_time_seconds`: End time in seconds
+- `created_at`, `updated_at`: Timestamps
+- `is_deleted`: Soft delete flag
 
 #### License
 
-- `id` - Primary key
-- `track_id` - Foreign key to Track (unique)
-- `status_id` - Foreign key to Status
-- **Relations:** One-to-One with `Track`, Many-to-One with `Status`, One-to-Many with `LicenseStatusHistory`
+- `id`: Primary key
+- `track_id`: Foreign key to Track (unique, one-to-one)
+- `status_id`: Foreign key to Status
+- Maintains a one-to-one relationship with Track
 
 #### Status
 
-- `id` - Primary key
-- `name` - Status name (e.g., "Pending", "In Negotiation", "Approved", "Rejected")
-- **Relations:** One-to-Many with `License` and `LicenseStatusHistory`
+- `id`: Primary key
+- `name`: Status name (PENDING, IN_NEGOTIATION, APPROVED, REJECTED, CANCELLED)
 
 #### LicenseStatusHistory
 
-- Tracks the history of status changes for licenses
-- **Relations:** Many-to-One with `License` and `Status`
+- Tracks all status changes for audit purposes
+- `license_id`: Foreign key to License
+- `status_id`: Foreign key to Status
+- `created_at`: Timestamp of status change
+
+## 🔄 License Workflow (State Machine)
+
+The license management follows a state machine workflow that defines valid status transitions. When a track is created, a license is automatically created in the `PENDING` state.
+
+![License State Machine](docs/license_state_machine.png)
+
+### Workflow States
+
+- **PENDING:** Initial state when a license is created for a track
+- **IN_NEGOTIATION:** Active negotiation phase with rights holders
+- **APPROVED:** Terminal state - license has been successfully approved
+- **REJECTED:** Terminal state - license request has been rejected
+- **CANCELLED:** Terminal state - license request has been cancelled
+
+### Valid Transitions
+
+1. **PENDING → IN_NEGOTIATION:** Triggered by "Start Negotiation"
+2. **PENDING → CANCELLED:** Triggered by "Cancel Request"
+3. **IN_NEGOTIATION → APPROVED:** Triggered by "Approve License"
+4. **IN_NEGOTIATION → REJECTED:** Triggered by "Reject License"
+5. **IN_NEGOTIATION → CANCELLED:** Triggered by "Track Removed"
+
+### Implementation
+
+The backend enforces these state transitions in the `LicensesService`. Invalid transitions will result in a validation error. All status changes are logged in the `LicenseStatusHistory` table for audit purposes, and real-time updates are broadcast via WebSocket to all connected clients.
 
 ## 🔌 API Endpoints
 
+All API endpoints are prefixed with `/api`. For example, to access the health endpoint, use `GET /api/health`.
+
+### Health
+
+- `GET /api/health` - Health check endpoint
+
 ### Movies
 
-- `POST /movies` - Create a new movie
-- `GET /movies` - Get all movies (with pagination)
-- `GET /movies/:id` - Get a movie by ID
-- `PUT /movies/:id` - Update a movie
-- `DELETE /movies/:id` - Soft delete a movie
+- `GET /api/movies` - Get all movies (with pagination)
+- `GET /api/movies/:id` - Get movie by ID
+- `POST /api/movies` - Create a new movie
+- `PUT /api/movies/:id` - Update a movie
+- `DELETE /api/movies/:id` - Soft delete a movie
 
 ### Scenes
 
-- `POST /scenes` - Create a new scene
-- `GET /scenes/movie/:movie_id` - Get all scenes for a movie (with pagination)
-- `GET /scenes/:id` - Get a scene by ID
-- `PUT /scenes/:id` - Update a scene
-- `DELETE /scenes/:id` - Soft delete a scene
+- `GET /api/scenes` - Get all scenes (with pagination)
+- `GET /api/scenes/movie/:movieId` - Get all scenes for a movie
+- `GET /api/scenes/:id` - Get scene by ID
+- `POST /api/scenes` - Create a new scene
+- `PUT /api/scenes/:id` - Update a scene
+- `DELETE /api/scenes/:id` - Soft delete a scene
 
 ### Songs
 
-- `POST /songs` - Create a new song
-- `GET /songs` - Get all songs (with pagination)
-- `GET /songs/:id` - Get a song by ID
-- `PUT /songs/:id` - Update a song
-- `DELETE /songs/:id` - Soft delete a song
+- `GET /api/songs` - Get all songs (with pagination)
+- `GET /api/songs/:id` - Get song by ID
+- `POST /api/songs` - Create a new song
+- `PUT /api/songs/:id` - Update a song
+- `DELETE /api/songs/:id` - Soft delete a song
 
-### Tracks (Core Feature)
+### Tracks
 
-- `POST /tracks` - Create a track and associate a song
-  - **Body:** `{ scene_id, song_id, start_time_seconds, end_time_seconds }`
-  - **Note:** Automatically creates a License with default status
-- `GET /tracks/:id` - Get a track by ID (includes license status)
-- `GET /tracks/scene/:sceneId` - Get all tracks for a scene (with pagination)
-- `GET /tracks/movie/:movieId` - Get all tracks for a movie (with pagination)
-- `PUT /tracks/:id` - Update a track
-- `PUT /tracks/:id/license/status` - **Update license status** (triggers WebSocket event)
-  - **Body:** `{ status_id }`
-- `DELETE /tracks/:id` - Soft delete a track
+- `POST /api/tracks` - Create a new track (associates a song to a scene)
+- `GET /api/tracks/:id` - Get track by ID
+- `GET /api/tracks/scene/:sceneId` - Get all tracks for a scene (with pagination)
+- `GET /api/tracks/movie/:movieId` - Get all tracks for a movie (with pagination)
+- `PUT /api/tracks/:id` - Update a track
+- `PUT /api/tracks/:id/license/status` - Update license status of a track
+- `DELETE /api/tracks/:id` - Soft delete a track
 
 ### Licenses
 
-- `GET /licenses/:id` - Get a license by ID (includes status and history)
+- `GET /api/licenses` - Get all licenses (with pagination)
+- `GET /api/licenses/:id` - Get license by ID
+- `GET /api/licenses/:id/history` - Get license status history
 
-### Health Check
+## 🔄 Real-time Updates
 
-- `GET /health` - Health check endpoint
+The backend implements **WebSocket** support using Socket.IO for real-time license status updates.
 
-## 🔄 Real-Time Updates
+### WebSocket Events
 
-The system implements **WebSocket** support using Socket.IO for real-time license status updates.
+**Client → Server:**
 
-### WebSocket Gateway
+- Connection: Clients connect to the WebSocket server
+- Disconnection: Automatic handling
 
-- **Module:** `WebsocketModule`
-- **Gateway:** `WebsocketGateway`
-- **Event:** `licenseStatusUpdate`
+**Server → Client:**
 
-### How It Works
+- `licenseStatusUpdate`: Broadcasted when a license status changes
+  ```json
+  {
+    "licenseId": 1,
+    "statusId": 2,
+    "statusName": "IN_NEGOTIATION",
+    "trackId": 1,
+    "timestamp": "2024-01-15T10:30:00Z"
+  }
+  ```
 
-1. When a license status is updated via `PUT /tracks/:id/license/status`, the system:
-   - Updates the license status in the database
-   - Records the status change in `LicenseStatusHistory`
-   - Emits a `licenseStatusUpdate` event to all connected WebSocket clients
+### Implementation
 
-2. **Event Payload:**
-
-   ```json
-   {
-     "licenseId": 1,
-     "statusId": 2,
-     "statusName": "In Negotiation",
-     "trackId": 1,
-     "timestamp": "2024-01-15T10:30:00Z"
-   }
-   ```
-
-3. **Client Connection:**
-   - Connect to the WebSocket server
-   - Listen for `licenseStatusUpdate` events
-   - Update UI in real-time when status changes occur
-
-### Example Client Code
-
-```javascript
-import { io } from 'socket.io-client';
-
-const socket = io('http://localhost:3000');
-
-socket.on('licenseStatusUpdate', (update) => {
-  console.log('License status updated:', update);
-  // Update your UI here
-});
-```
+The `WebsocketGateway` is injected into the `LicensesService` and emits updates whenever a license status transition occurs. All connected clients receive these updates in real-time.
 
 ## 🚀 Setup Instructions
 
 ### Prerequisites
 
-- Node.js (v22.20.0 or compatible)
-- PostgreSQL (latest)
-- npm or yarn
+- Node.js 22.20.0 or higher
+- Docker and Docker Compose
+- PostgreSQL (if running locally without Docker)
 
-### Local Development Setup
+### Environment Variables
 
-1. **Clone the repository** (if not already done)
+Create a `.env` file in the root directory with the following variables:
 
-2. **Navigate to the backend directory:**
+```env
+# Database Configuration
+DB_HOST=postgres
+DB_PORT=5432
+DB_USER=your_db_user
+DB_PASSWORD=your_db_password
+DB_NAME=your_db_name
+
+# Application Configuration
+PORT=3000
+FALLBACK_LANGUAGE=en
+```
+
+### Running with Docker (Recommended)
+
+1. **Build and start the services:**
 
    ```bash
-   cd backend
+   docker-compose up --build
    ```
 
-3. **Install dependencies:**
+2. **The application will:**
+   - Start PostgreSQL database
+   - Run database migrations automatically
+   - Start the NestJS application on port 3000
+
+3. **Access the API:**
+   - API Base URL: `http://localhost:3000/api`
+   - Swagger UI: `http://localhost:3000/api/docs`
+   - WebSocket: `ws://localhost:3000`
+
+### Running Locally (Development)
+
+1. **Install dependencies:**
 
    ```bash
    npm install
    ```
 
-4. **Set up environment variables:**
-   Create a `.env` file in the `backend` directory:
+2. **Set up environment variables:**
+   Create a `.env` file with the required variables (see above)
 
-   ```env
-   DB_HOST=localhost
-   DB_PORT=5432
-   DB_USER=postgres
-   DB_PASSWORD=postgres
-   DB_NAME=music_licensing
-   PORT=3000
-   FALLBACK_LANGUAGE=en
-   ```
+3. **Start PostgreSQL:**
+   Ensure PostgreSQL is running and accessible
 
-5. **Start PostgreSQL** (if not using Docker):
-
-   ```bash
-   # Make sure PostgreSQL is running locally
-   ```
-
-6. **Run database migrations:**
+4. **Run database migrations:**
 
    ```bash
    npm run db:migrate:run
    ```
 
-7. **Seed the database (optional):**
+5. **Seed the database (optional):**
 
    ```bash
    npm run db:seed
    ```
 
-8. **Start the development server:**
+6. **Start the development server:**
    ```bash
    npm run start:dev
    ```
 
-The API will be available at `http://localhost:3000`
+### Available Scripts
 
-## 🐳 Docker Setup
+- `npm run build` - Build the application
+- `npm run start` - Start the application
+- `npm run start:dev` - Start in development mode with hot reload
+- `npm run start:prod` - Start in production mode
+- `npm run lint` - Run ESLint
+- `npm run test` - Run unit tests
+- `npm run test:e2e` - Run end-to-end tests
+- `npm run db:migrate` - Run database migrations
+- `npm run db:seed` - Seed the database
 
-### Using Docker Compose (Recommended)
+## 🗄️ Database Migrations
 
-The project includes a `docker-compose.yml` file that sets up both the backend and PostgreSQL database.
-
-1. **Create a `.env` file** in the `backend` directory with the required variables (see [Environment Variables](#environment-variables))
-
-2. **Build and start the services:**
-
-   ```bash
-   cd backend
-   docker-compose up --build
-   ```
-
-3. **Run migrations** (first time only):
-
-   ```bash
-   docker-compose exec backend npm run db:migrate:run
-   ```
-
-4. **Seed the database** (optional):
-   ```bash
-   docker-compose exec backend npm run db:seed
-   ```
-
-The services will be available at:
-
-- **API:** `http://localhost:3000`
-- **PostgreSQL:** `localhost:5432`
-
-### Docker Compose Services
-
-- **backend:** NestJS application (port 3000)
-- **postgres:** PostgreSQL database (port 5432)
-
-The backend service waits for PostgreSQL to be healthy before starting.
-
-## 📊 Database Migrations
+The project uses TypeORM migrations for database schema management.
 
 ### Running Migrations
 
+Migrations run automatically when the Docker container starts (via `entrypoint.sh`). For local development:
+
 ```bash
-# Run migrations
 npm run db:migrate:run
-
-# Or using the migration script
-npm run db:migrate
 ```
 
-### Creating New Migrations
+### Migration Files
 
-Migrations are automatically run on application startup when `migrationsRun: true` is set in the TypeORM configuration.
+- `1763171378674-migration.ts` - Initial schema creation
+- `1763222446416-migration.ts` - Additional schema updates
 
-## 🌱 Database Seeders
-
-The project includes seeders to populate the database with initial data:
-
-- **Status seeder** - Creates default license statuses
-- **Movie seeder** - Creates sample movies
-- **Scene seeder** - Creates sample scenes
-- **Song seeder** - Creates sample songs
-- **Track seeder** - Creates sample tracks with licenses
-- **License seeder** - Creates sample licenses
-
-### Running Seeders
-
-```bash
-npm run db:seed
-```
-
-## 🧪 Testing
-
-### Running Tests
-
-```bash
-# Unit tests
-npm run test
-
-# Watch mode
-npm run test:watch
-
-# Coverage
-npm run test:cov
-
-# E2E tests
-npm run test:e2e
-```
-
-### Test Structure
-
-- **Unit tests:** Located alongside source files (`.spec.ts`)
-- **E2E tests:** Located in the `test/` directory
-
-## 🔧 Environment Variables
-
-| Variable            | Description               | Default     |
-| ------------------- | ------------------------- | ----------- |
-| `DB_HOST`           | PostgreSQL host           | `localhost` |
-| `DB_PORT`           | PostgreSQL port           | `5432`      |
-| `DB_USER`           | Database user             | `postgres`  |
-| `DB_PASSWORD`       | Database password         | -           |
-| `DB_NAME`           | Database name             | -           |
-| `PORT`              | Application port          | `3000`      |
-| `FALLBACK_LANGUAGE` | Default language for i18n | `en`        |
-
-## 💡 Tech Decisions & Tradeoffs
+## 🎯 Tech Decisions & Tradeoffs
 
 ### Why NestJS?
 
-- **Modular architecture:** Clean separation of concerns with modules
-- **TypeScript-first:** Strong typing and better developer experience
-- **Built-in features:** Dependency injection, decorators, and excellent tooling
-- **Ecosystem:** Rich ecosystem with official integrations (TypeORM, WebSockets, etc.)
+- **Modular Architecture:** NestJS's module system aligns perfectly with domain-driven design
+- **TypeScript First:** Full type safety and excellent developer experience
+- **Built-in Features:** Dependency injection, decorators, and extensive ecosystem
+- **Scalability:** Easy to scale and maintain as the application grows
 
-### Why REST over GraphQL?
+### Why REST API?
 
-- **Simplicity:** REST is straightforward for CRUD operations
-- **Caching:** Better HTTP caching support
-- **Familiarity:** Easier for frontend developers to consume
-- **Tradeoff:** GraphQL would provide more flexibility for complex queries, but REST is sufficient for this use case
+- **Simplicity:** REST is straightforward and well-understood
+- **Stateless:** Each request contains all necessary information
+- **Cacheable:** Responses can be cached for better performance
+- **Standard HTTP Methods:** Clear semantics for CRUD operations
+- **Swagger Integration:** Easy API documentation with NestJS Swagger
 
 ### Why PostgreSQL?
 
-- **Relational data:** Perfect fit for structured data with relationships
-- **ACID compliance:** Ensures data integrity for licensing workflows
-- **Mature ecosystem:** Excellent tooling and community support
-- **TypeORM integration:** Seamless integration with NestJS
+- **ACID Compliance:** Ensures data integrity for critical licensing workflows
+- **Relational Data:** Perfect fit for the entity relationships (movies → scenes → tracks)
+- **Mature Ecosystem:** Excellent tooling and TypeORM support
+- **JSON Support:** Can store unstructured data if needed in the future
 
-### Why WebSockets (Socket.IO)?
+### Why WebSockets for Real-time?
 
-- **Real-time updates:** Immediate notification of status changes
-- **Bidirectional communication:** Can extend to support client-to-server events
-- **Fallback support:** Socket.IO provides fallbacks for older browsers
-- **Tradeoff:** Server-Sent Events (SSE) would be simpler for one-way updates, but WebSockets provide more flexibility for future features
+- **Low Latency:** Immediate updates without polling overhead
+- **Bidirectional:** Can extend to support client-to-server real-time features
+- **Socket.IO:** Mature library with automatic reconnection and fallback support
+- **Scalability:** Can be extended with Redis adapter for horizontal scaling
 
 ### Why TypeORM?
 
-- **TypeScript support:** Native TypeScript support with decorators
-- **Active Record pattern:** Easy to use and understand
-- **Migration support:** Built-in migration system
-- **Relations:** Excellent support for entity relationships
+- **TypeScript Native:** Excellent TypeScript support with decorators
+- **Active Record & Data Mapper:** Flexible patterns
+- **Migration Support:** Built-in migration system
+- **Relationships:** Easy definition of entity relationships
 
-### Soft Deletes
+### Tradeoffs
 
-- **Implementation:** Using `is_deleted` flag instead of hard deletes
-- **Reason:** Preserves data history for auditing and recovery
-- **Tradeoff:** Requires filtering in queries, but provides better data integrity
+1. **REST vs GraphQL:**
+   - **Chosen:** REST for simplicity and standard HTTP semantics
+   - **Tradeoff:** More endpoints needed, but clearer and easier to cache
 
-### Internationalization (i18n)
+2. **WebSocket vs Server-Sent Events:**
+   - **Chosen:** WebSocket for bidirectional communication potential
+   - **Tradeoff:** Slightly more complex, but more flexible for future features
 
-- **Implementation:** Using `nestjs-i18n` for error messages
-- **Reason:** Better user experience with localized error messages
-- **Current support:** English and Spanish
+3. **Soft Deletes:**
+   - **Chosen:** Soft deletes to maintain data integrity and audit trail
+   - **Tradeoff:** Requires filtering in queries, but preserves historical data
+
+## 📁 Project Structure
+
+```
+src/
+├── app.module.ts                 # Root application module
+├── main.ts                       # Application entry point
+├── common/                       # Shared utilities
+│   ├── exceptions/              # Custom exception handlers
+│   └── filters/                 # Global exception filters
+├── config/                       # Configuration modules
+│   ├── app.config.ts            # App configuration
+│   ├── i18n.config.ts           # Internationalization config
+│   ├── swagger.config.ts        # Swagger/OpenAPI config
+│   └── typeorm.config.ts         # TypeORM configuration
+├── db/                           # Database related files
+│   ├── datasource.ts            # TypeORM datasource
+│   ├── migrations/              # Database migrations
+│   └── seeders/                 # Database seeders
+├── i18n/                         # Translation files
+│   ├── en/                      # English translations
+│   └── es/                      # Spanish translations
+├── modules/                      # Feature modules
+│   ├── health/                  # Health check module
+│   ├── licenses/                # License management
+│   ├── movies/                  # Movie management
+│   ├── scenes/                  # Scene management
+│   ├── songs/                   # Song catalog
+│   ├── tracks/                  # Track management
+│   └── websocket/               # WebSocket gateway
+└── utils/                        # Utility functions
+    ├── calculatePaginationResponse.ts
+    └── getSkipPage.ts
+```
+
+## 🔒 Security Considerations
+
+- **Input Validation:** All DTOs use `class-validator` decorators
+- **SQL Injection:** TypeORM uses parameterized queries
+- **CORS:** Enabled for cross-origin requests (configure appropriately for production)
+- **Error Handling:** Global exception filter prevents sensitive error exposure
+- **Soft Deletes:** Prevents accidental data loss
+
+## 🧪 Testing
+
+The project includes testing infrastructure:
+
+- **Unit Tests:** Jest configuration for unit testing
+- **E2E Tests:** End-to-end test setup in `test/` directory
+- **Test Scripts:** `npm run test` and `npm run test:e2e`
+
+## 📝 API Documentation
+
+Interactive API documentation is available via Swagger UI:
+
+- **URL:** `http://localhost:3000/api/docs`
+- **Features:**
+  - Browse all endpoints
+  - Test API calls directly
+  - View request/response schemas
+  - Authentication support (if implemented)
+
+## 🌐 Internationalization
+
+The backend supports multiple languages for error messages and validation:
+
+- **Supported Languages:** English (en), Spanish (es)
+- **Configuration:** Set via `FALLBACK_LANGUAGE` environment variable
+- **Usage:** Language can be specified via query parameter `?lang=en` or `Accept-Language` header
+
+## 📄 License
+
+See LICENSE file for details.
