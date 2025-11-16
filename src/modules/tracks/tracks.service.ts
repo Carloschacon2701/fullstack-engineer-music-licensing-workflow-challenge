@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { CreateTrackDto } from './dto/create-track.dto';
 import { UpdateTrackDto } from './dto/update-track.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,6 +14,8 @@ import { LicensesService } from '../licenses/licenses.service';
 import { UpdateTrackLicenseStatusDto } from './dto/updateTrackLicenseStatus-track.dto';
 import { I18nService } from 'nestjs-i18n';
 import { Movie } from '../movies/entities/movie.entity';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 
 @Injectable()
 export class TracksService {
@@ -30,6 +32,7 @@ export class TracksService {
     private readonly i18n: I18nService,
     @InjectRepository(Movie)
     private movieRepository: Repository<Movie>,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async create(createTrackDto: CreateTrackDto) {
@@ -78,6 +81,14 @@ export class TracksService {
 
     await this.licenseService.create({ track_id: savedTrack.id });
 
+    const cacheKeyMovie = `tracks:movie:${scene.movie_id}`;
+    const cacheKeyScene = `tracks:scene:${scene_id}`;
+
+    await Promise.all([
+      this.cacheManager.del(cacheKeyMovie),
+      this.cacheManager.del(cacheKeyScene),
+    ]);
+
     return savedTrack;
   }
 
@@ -86,7 +97,7 @@ export class TracksService {
     findAllByMovieIdTrackDto: FindAllByMovieIdTrackDto,
   ) {
     const { page = 1, limit = 10 } = findAllByMovieIdTrackDto;
-    const { limit: limitPage, skip } = calculatePagination(page, limit);
+    const { skip, limit: paginationLimit } = calculatePagination(page, limit);
 
     const movie = await this.movieRepository.findOneBy({
       id: movieId,
@@ -101,6 +112,12 @@ export class TracksService {
       );
     }
 
+    const cacheKey = `tracks:movie:${movieId}:page:${page}:limit:${limit}`;
+    const cachedData = await this.cacheManager.get(cacheKey);
+    if (cachedData) {
+      return cachedData;
+    }
+
     const where: FindOptionsWhere<Track> = {
       scene: { movie_id: movie.id },
       is_deleted: false,
@@ -108,17 +125,24 @@ export class TracksService {
 
     const [tracks, count] = await this.trackRepository.findAndCount({
       skip,
-      take: limitPage,
+      take: paginationLimit,
       where,
       relations: {
         license: true,
       },
+      order: {
+        created_at: 'DESC',
+      },
     });
 
-    return {
+    const response = {
       data: tracks,
-      pagination: calculatePaginationResponse(count, page, limit),
+      pagination: calculatePaginationResponse(count, page, paginationLimit),
     };
+
+    await this.cacheManager.set(cacheKey, response, 60000); // 1 minute
+
+    return response;
   }
 
   async findAllBySceneId(
@@ -126,7 +150,7 @@ export class TracksService {
     findAllBySceneIdTrackDto: FindAllBySceneIdTrackDto,
   ) {
     const { page = 1, limit = 10 } = findAllBySceneIdTrackDto;
-    const { limit: limitPage, skip } = calculatePagination(page, limit);
+    const { skip, limit: paginationLimit } = calculatePagination(page, limit);
 
     const scene = await this.sceneRepository.findOneBy({
       id: sceneId,
@@ -141,6 +165,12 @@ export class TracksService {
       );
     }
 
+    const cacheKey = `tracks:scene:${sceneId}:page:${page}:limit:${limit}`;
+    const cachedData = await this.cacheManager.get(cacheKey);
+    if (cachedData) {
+      return cachedData;
+    }
+
     const where: FindOptionsWhere<Track> = {
       scene: { id: scene.id, is_deleted: false },
     };
@@ -148,16 +178,23 @@ export class TracksService {
     const [tracks, count] = await this.trackRepository.findAndCount({
       where,
       skip,
-      take: limitPage,
+      take: paginationLimit,
       relations: {
         license: true,
       },
+      order: {
+        created_at: 'DESC',
+      },
     });
 
-    return {
+    const response = {
       data: tracks,
-      pagination: calculatePaginationResponse(count, page, limit),
+      pagination: calculatePaginationResponse(count, page, paginationLimit),
     };
+
+    await this.cacheManager.set(cacheKey, response, 60000); // 1 minute
+
+    return response;
   }
 
   async findOne(id: number) {
@@ -177,7 +214,10 @@ export class TracksService {
 
   async update(id: number, updateTrackDto: UpdateTrackDto) {
     const { start_time_seconds, end_time_seconds } = updateTrackDto;
-    const track = await this.trackRepository.findOneBy({ id });
+    const track = await this.trackRepository.findOne({
+      where: { id, is_deleted: false },
+      relations: { scene: true },
+    });
 
     if (!track) {
       throw new I18nException(
@@ -194,6 +234,14 @@ export class TracksService {
     }
 
     const savedTrack = await this.trackRepository.save(track);
+
+    const cacheKeyScene = `tracks:scene:${track.scene_id}`;
+    const cacheKeyMovie = `tracks:movie:${track.scene.movie_id}`;
+
+    await Promise.all([
+      this.cacheManager.del(cacheKeyScene),
+      this.cacheManager.del(cacheKeyMovie),
+    ]);
 
     return savedTrack;
   }

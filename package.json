@@ -23,6 +23,8 @@
     "db:seed": "tsx -r tsconfig-paths/register src/db/seeders/main.seeder.ts"
   },
   "dependencies": {
+    "@keyv/redis": "^5.1.4",
+    "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
@@ -32,6 +34,8 @@
     "@nestjs/swagger": "^11.2.1",
     "@nestjs/typeorm": "^11.0.0",
     "@nestjs/websockets": "^11.1.9",
+    "cache-manager": "^7.2.5",
+    "cacheable": "^2.2.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "dotenv": "^17.2.3",

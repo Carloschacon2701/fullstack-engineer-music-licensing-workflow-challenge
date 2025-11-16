@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Like } from 'typeorm';
+import { ILike } from 'typeorm';
 import { MoviesService } from './movies.service';
 import { Movie } from './entities/movie.entity';
 import { CreateMovieDto } from './dto/create-movie.dto';
@@ -8,6 +8,7 @@ import { UpdateMovieDto } from './dto/update-movie.dto';
 import { FindAllMoviesDto } from './dto/findAll-movies.dto';
 import { I18nException } from '@/common/exceptions/i18n.exception';
 import { I18nService } from 'nestjs-i18n';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 describe('MoviesService', () => {
   let service: MoviesService;
@@ -23,6 +24,12 @@ describe('MoviesService', () => {
     t: jest.fn((key: string) => key),
   };
 
+  const mockCacheManager = {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -35,6 +42,10 @@ describe('MoviesService', () => {
           provide: I18nService,
           useValue: mockI18nService,
         },
+        {
+          provide: CACHE_MANAGER,
+          useValue: mockCacheManager,
+        },
       ],
     }).compile();
 
@@ -43,6 +54,7 @@ describe('MoviesService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    mockCacheManager.get.mockResolvedValue(null);
   });
 
   describe('create', () => {
@@ -107,10 +119,12 @@ describe('MoviesService', () => {
           created_at: 'DESC',
         },
       });
-      expect(result.data).toEqual(mockMovies);
-      expect(result.pagination).toBeDefined();
-      expect(result.pagination.totalPages).toBe(1);
-      expect(result.pagination.pageSize).toBe(10);
+      expect(result).toHaveProperty('data');
+      expect(result).toHaveProperty('pagination');
+      expect((result as any).data).toEqual(mockMovies);
+      expect((result as any).pagination).toBeDefined();
+      expect((result as any).pagination.totalPages).toBe(1);
+      expect((result as any).pagination.pageSize).toBe(10);
     });
 
     it('should return paginated movies with search filter', async () => {
@@ -146,8 +160,10 @@ describe('MoviesService', () => {
           created_at: 'DESC',
         },
       });
-      expect(result.data).toEqual(mockMovies);
-      expect(result.pagination.totalPages).toBe(1);
+      expect(result).toHaveProperty('data');
+      expect(result).toHaveProperty('pagination');
+      expect((result as any).data).toEqual(mockMovies);
+      expect((result as any).pagination.totalPages).toBe(1);
     });
 
     it('should handle pagination correctly', async () => {
@@ -169,7 +185,8 @@ describe('MoviesService', () => {
           created_at: 'DESC',
         },
       });
-      expect(result.pagination.pageSize).toBe(5);
+      expect(result).toHaveProperty('pagination');
+      expect((result as any).pagination.pageSize).toBe(5);
     });
 
     it('should use default pagination values when not provided', async () => {

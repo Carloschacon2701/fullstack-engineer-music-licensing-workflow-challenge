@@ -6,7 +6,7 @@ import { SongsModule } from './modules/songs/songs.module';
 import { LicensesModule } from './modules/licenses/licenses.module';
 import { HealthModule } from './modules/health/health.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
-import { TypeOrmConfig, AppConfigModule } from './config';
+import { TypeOrmConfig, AppConfigModule, redisConfig } from './config';
 
 @Module({
   imports: [
@@ -19,6 +19,7 @@ import { TypeOrmConfig, AppConfigModule } from './config';
     ...AppConfigModule,
     HealthModule,
     WebsocketModule,
+    redisConfig,
   ],
 })
 export class AppModule {}

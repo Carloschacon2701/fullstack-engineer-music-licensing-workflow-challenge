@@ -1,5 +1,5 @@
 /* e */
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { CreateMovieDto } from './dto/create-movie.dto';
 import { UpdateMovieDto } from './dto/update-movie.dto';
 import { FindAllMoviesDto } from './dto/findAll-movies.dto';
@@ -9,6 +9,8 @@ import { FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Movie } from './entities/movie.entity';
 import { I18nService } from 'nestjs-i18n';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 
 @Injectable()
 export class MoviesService {
@@ -17,11 +19,15 @@ export class MoviesService {
   constructor(
     @InjectRepository(Movie) private movieRepository: Repository<Movie>,
     private readonly i18n: I18nService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
   async create(createMovieDto: CreateMovieDto) {
+    const cacheKey = `movies`;
     const movie = await this.movieRepository.save(createMovieDto);
 
     this.logger.log(`Movie created: ID ${movie.id} - "${movie.title}"`);
+
+    await this.cacheManager.del(cacheKey);
 
     return movie;
   }
@@ -30,6 +36,12 @@ export class MoviesService {
     const { page = 1, limit = 10, search } = findAllMoviesDto;
     const { skip, limit: paginationLimit } = calculatePagination(page, limit);
     const whereClause: FindOptionsWhere<Movie> = { is_deleted: false };
+    const cacheKey = `movies:page:${page}:limit:${limit}${search ? `:search:${search}` : ''}`;
+
+    const cachedData = await this.cacheManager.get(cacheKey);
+    if (cachedData) {
+      return cachedData;
+    }
 
     if (search) {
       whereClause.title = ILike(`%${search}%`);
@@ -44,10 +56,20 @@ export class MoviesService {
       },
     });
 
-    return {
+    const pagination = calculatePaginationResponse(
+      count,
+      page,
+      paginationLimit,
+    );
+
+    const response = {
       data: movies,
-      pagination: calculatePaginationResponse(count, page, paginationLimit),
+      pagination,
     };
+
+    await this.cacheManager.set(cacheKey, response, 60000); // 1 minute
+
+    return response;
   }
 
   async findOne(id: number) {
@@ -83,6 +105,9 @@ export class MoviesService {
 
     this.logger.log(`Movie updated: ID ${id}`);
 
+    const cacheKey = `movies`;
+    await this.cacheManager.del(cacheKey);
+
     return this.movieRepository.findOne({ where: { id } });
   }
 
@@ -103,6 +128,9 @@ export class MoviesService {
     await this.movieRepository.save(movie);
 
     this.logger.log(`Movie ${id} soft deleted`);
+
+    const cacheKey = `movies`;
+    await this.cacheManager.del(cacheKey);
 
     return movie;
   }
