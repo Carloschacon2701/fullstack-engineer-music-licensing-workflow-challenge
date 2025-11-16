@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Like } from 'typeorm';
+import { ILike } from 'typeorm';
 import { SongsService } from './songs.service';
 import { Song } from './entities/song.entity';
 import { CreateSongDto } from './dto/create-song.dto';
@@ -147,7 +147,7 @@ describe('SongsService', () => {
         take: 10,
         where: {
           is_deleted: false,
-          title: Like('%Test%'),
+          title: ILike('%Test%'),
         },
       });
       expect(result.data).toEqual(mockSongs);
@@ -182,7 +182,7 @@ describe('SongsService', () => {
         take: 10,
         where: {
           is_deleted: false,
-          artist: Like('%Test Artist%'),
+          artist: ILike('%Test Artist%'),
         },
       });
       expect(result.data).toEqual(mockSongs);
@@ -218,8 +218,8 @@ describe('SongsService', () => {
         take: 10,
         where: {
           is_deleted: false,
-          title: Like('%Test%'),
-          artist: Like('%Artist%'),
+          title: ILike('%Test%'),
+          artist: ILike('%Artist%'),
         },
       });
       expect(result.data).toEqual(mockSongs);

@@ -6,7 +6,7 @@ import { FindAllMoviesDto } from './dto/findAll-movies.dto';
 import { calculatePagination } from '@/utils/getSkipPage';
 import { calculatePaginationResponse } from '@/utils/calculatePaginationResponse';
 import { I18nException } from '@/common/exceptions/i18n.exception';
-import { FindOptionsWhere, Like, Repository } from 'typeorm';
+import { FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Movie } from './entities/movie.entity';
 import { I18nService } from 'nestjs-i18n';
@@ -33,7 +33,7 @@ export class MoviesService {
     const whereClause: FindOptionsWhere<Movie> = { is_deleted: false };
 
     if (search) {
-      whereClause.title = Like(`%${search}%`);
+      whereClause.title = ILike(`%${search}%`);
     }
 
     const [movies, count] = await this.movieRepository.findAndCount({

@@ -5,13 +5,14 @@ export const calculatePaginationResponse = (
 ) => {
   const totalPages = Math.ceil(total / limit);
   const nextPage = page < totalPages ? page + 1 : null;
-  const previous = page > 1 ? page - 1 : null;
+  const previousPage = page > 1 ? page - 1 : null;
   const hasNextPage = page < totalPages;
   const hasPreviousPage = page > 1;
 
   return {
+    total,
     nextPage,
-    previous,
+    previousPage,
     totalPages,
     hasNextPage,
     hasPreviousPage,

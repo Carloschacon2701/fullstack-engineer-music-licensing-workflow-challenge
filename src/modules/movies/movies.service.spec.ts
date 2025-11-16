@@ -140,7 +140,7 @@ describe('MoviesService', () => {
         take: 10,
         where: {
           is_deleted: false,
-          title: Like('%Test%'),
+          title: ILike('%Test%'),
         },
         order: {
           created_at: 'DESC',

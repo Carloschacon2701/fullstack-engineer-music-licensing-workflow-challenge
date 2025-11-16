@@ -2,7 +2,7 @@ import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { CreateSongDto } from './dto/create-song.dto';
 import { UpdateSongDto } from './dto/update-song.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, Like, Repository } from 'typeorm';
+import { FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { Song } from './entities/song.entity';
 import { FindAllSongDto } from './dto/findAll-song.dto';
 import { calculatePagination } from '@/utils/getSkipPage';
@@ -39,10 +39,10 @@ export class SongsService {
     const where: FindOptionsWhere<Song> = { is_deleted: false };
 
     if (title) {
-      where.title = Like(`%${title}%`);
+      where.title = ILike(`%${title}%`);
     }
     if (artist) {
-      where.artist = Like(`%${artist}%`);
+      where.artist = ILike(`%${artist}%`);
     }
     const [songs, count] = await this.songRepository.findAndCount({
       skip,

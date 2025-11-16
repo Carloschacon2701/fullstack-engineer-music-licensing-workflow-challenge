@@ -48,4 +48,3 @@ describe('Pagination (e2e)', () => {
       });
   });
 });
-

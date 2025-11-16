@@ -30,7 +30,7 @@ export class FindAllMoviesDto {
 
   @ApiPropertyOptional({
     description: 'Search term to filter movies by title or description',
-    example: 'matrix',
+    example: 'City',
     type: String,
   })
   @IsOptional()

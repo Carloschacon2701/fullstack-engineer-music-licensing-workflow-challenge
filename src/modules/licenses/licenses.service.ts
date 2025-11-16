@@ -113,6 +113,10 @@ export class LicensesService {
         LicenseStatusEnum.CANCELLED,
       ];
 
+      if (removed && finalStatuses.includes(currentStatus)) {
+        return;
+      }
+
       if (removed && !finalStatuses.includes(currentStatus)) {
         await this.updateLicenseStatus(license, LicenseStatusEnum.CANCELLED);
         return;
