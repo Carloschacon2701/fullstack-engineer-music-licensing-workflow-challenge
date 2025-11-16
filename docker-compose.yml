@@ -12,6 +12,7 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${DB_NAME}
       - FALLBACK_LANGUAGE=${FALLBACK_LANGUAGE}
+      - REDIS_URL=${REDIS_URL}
     depends_on:
       postgres:
         condition: service_healthy

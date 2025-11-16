@@ -11,6 +11,7 @@ This is the backend API for the **Music Licensing Workflow** system, designed to
 - **ORM:** TypeORM
 - **API:** REST API
 - **Real-time:** WebSockets (Socket.IO)
+- **Caching:** Redis with multi-tier caching (in-memory + Redis)
 - **Documentation:** Swagger/OpenAPI
 - **Validation:** class-validator & class-transformer
 - **Internationalization:** nestjs-i18n
@@ -34,6 +35,9 @@ The backend follows a **modular architecture** using NestJS modules:
 - **Modular Design:** Each domain (movies, scenes, songs, tracks, licenses) is encapsulated in its own module
 - **State Machine:** License status transitions follow a defined workflow
 - **Real-time Updates:** WebSocket gateway broadcasts license status changes
+- **Multi-tier Caching:** Redis-backed caching with in-memory fallback for improved performance
+- **Pagination:** All list endpoints support pagination with comprehensive metadata
+- **Search & Filtering:** Movies and Songs support search/filter capabilities
 - **Soft Deletes:** Entities support soft deletion via `is_deleted` flag
 - **Internationalization:** Error messages and validation messages support multiple languages (EN/ES)
 - **API Documentation:** Swagger UI available at `/api/docs`
@@ -127,186 +131,6 @@ The license management follows a state machine workflow that defines valid statu
 
 The backend enforces these state transitions in the `LicensesService`. Invalid transitions will result in a validation error. All status changes are logged in the `LicenseStatusHistory` table for audit purposes, and real-time updates are broadcast via WebSocket to all connected clients.
 
-## 🔌 API Endpoints
-
-All API endpoints are prefixed with `/api`. For example, to access the health endpoint, use `GET /api/health`.
-
-### Health
-
-- `GET /api/health` - Health check endpoint
-
-### Movies
-
-- `GET /api/movies` - Get all movies (with pagination)
-- `GET /api/movies/:id` - Get movie by ID
-- `POST /api/movies` - Create a new movie
-- `PUT /api/movies/:id` - Update a movie
-- `DELETE /api/movies/:id` - Soft delete a movie
-
-### Scenes
-
-- `GET /api/scenes` - Get all scenes (with pagination)
-- `GET /api/scenes/movie/:movieId` - Get all scenes for a movie
-- `GET /api/scenes/:id` - Get scene by ID
-- `POST /api/scenes` - Create a new scene
-- `PUT /api/scenes/:id` - Update a scene
-- `DELETE /api/scenes/:id` - Soft delete a scene
-
-### Songs
-
-- `GET /api/songs` - Get all songs (with pagination)
-- `GET /api/songs/:id` - Get song by ID
-- `POST /api/songs` - Create a new song
-- `PUT /api/songs/:id` - Update a song
-- `DELETE /api/songs/:id` - Soft delete a song
-
-### Tracks
-
-- `POST /api/tracks` - Create a new track (associates a song to a scene)
-- `GET /api/tracks/:id` - Get track by ID
-- `GET /api/tracks/scene/:sceneId` - Get all tracks for a scene (with pagination)
-- `GET /api/tracks/movie/:movieId` - Get all tracks for a movie (with pagination)
-- `PUT /api/tracks/:id` - Update a track
-- `PUT /api/tracks/:id/license/status` - Update license status of a track
-- `DELETE /api/tracks/:id` - Soft delete a track
-
-### Licenses
-
-- `GET /api/licenses` - Get all licenses (with pagination)
-- `GET /api/licenses/:id` - Get license by ID
-- `GET /api/licenses/:id/history` - Get license status history
-
-## 🔄 Real-time Updates
-
-The backend implements **WebSocket** support using Socket.IO for real-time license status updates.
-
-### WebSocket Events
-
-**Client → Server:**
-
-- Connection: Clients connect to the WebSocket server
-- Disconnection: Automatic handling
-
-**Server → Client:**
-
-- `licenseStatusUpdate`: Broadcasted when a license status changes
-  ```json
-  {
-    "licenseId": 1,
-    "statusId": 2,
-    "statusName": "IN_NEGOTIATION",
-    "trackId": 1,
-    "timestamp": "2024-01-15T10:30:00Z"
-  }
-  ```
-
-### Implementation
-
-The `WebsocketGateway` is injected into the `LicensesService` and emits updates whenever a license status transition occurs. All connected clients receive these updates in real-time.
-
-## 🚀 Setup Instructions
-
-### Prerequisites
-
-- Node.js 22.20.0 or higher
-- Docker and Docker Compose
-- PostgreSQL (if running locally without Docker)
-
-### Environment Variables
-
-Create a `.env` file in the root directory with the following variables:
-
-```env
-# Database Configuration
-DB_HOST=postgres
-DB_PORT=5432
-DB_USER=your_db_user
-DB_PASSWORD=your_db_password
-DB_NAME=your_db_name
-
-# Application Configuration
-PORT=3000
-FALLBACK_LANGUAGE=en
-```
-
-### Running with Docker (Recommended)
-
-1. **Build and start the services:**
-
-   ```bash
-   docker-compose up --build
-   ```
-
-2. **The application will:**
-   - Start PostgreSQL database
-   - Run database migrations automatically
-   - Start the NestJS application on port 3000
-
-3. **Access the API:**
-   - API Base URL: `http://localhost:3000/api`
-   - Swagger UI: `http://localhost:3000/api/docs`
-   - WebSocket: `ws://localhost:3000`
-
-### Running Locally (Development)
-
-1. **Install dependencies:**
-
-   ```bash
-   npm install
-   ```
-
-2. **Set up environment variables:**
-   Create a `.env` file with the required variables (see above)
-
-3. **Start PostgreSQL:**
-   Ensure PostgreSQL is running and accessible
-
-4. **Run database migrations:**
-
-   ```bash
-   npm run db:migrate:run
-   ```
-
-5. **Seed the database (optional):**
-
-   ```bash
-   npm run db:seed
-   ```
-
-6. **Start the development server:**
-   ```bash
-   npm run start:dev
-   ```
-
-### Available Scripts
-
-- `npm run build` - Build the application
-- `npm run start` - Start the application
-- `npm run start:dev` - Start in development mode with hot reload
-- `npm run start:prod` - Start in production mode
-- `npm run lint` - Run ESLint
-- `npm run test` - Run unit tests
-- `npm run test:e2e` - Run end-to-end tests
-- `npm run db:migrate` - Run database migrations
-- `npm run db:seed` - Seed the database
-
-## 🗄️ Database Migrations
-
-The project uses TypeORM migrations for database schema management.
-
-### Running Migrations
-
-Migrations run automatically when the Docker container starts (via `entrypoint.sh`). For local development:
-
-```bash
-npm run db:migrate:run
-```
-
-### Migration Files
-
-- `1763171378674-migration.ts` - Initial schema creation
-- `1763222446416-migration.ts` - Additional schema updates
-
 ## 🎯 Tech Decisions & Tradeoffs
 
 ### Why NestJS?
@@ -338,6 +162,14 @@ npm run db:migrate:run
 - **Socket.IO:** Mature library with automatic reconnection and fallback support
 - **Scalability:** Can be extended with Redis adapter for horizontal scaling
 
+### Why Redis for Caching?
+
+- **Performance:** Dramatically reduces database load and improves response times
+- **Scalability:** Distributed caching enables horizontal scaling across multiple instances
+- **Multi-tier Strategy:** In-memory fallback ensures caching works even if Redis is temporarily unavailable
+- **Cache Invalidation:** Automatic cache invalidation on mutations ensures data consistency
+- **Cost-effective:** Reduces database query costs and improves overall system efficiency
+
 ### Why TypeORM?
 
 - **TypeScript Native:** Excellent TypeScript support with decorators
@@ -358,6 +190,289 @@ npm run db:migrate:run
 3. **Soft Deletes:**
    - **Chosen:** Soft deletes to maintain data integrity and audit trail
    - **Tradeoff:** Requires filtering in queries, but preserves historical data
+
+4. **Caching Strategy:**
+   - **Chosen:** Multi-tier caching (Redis + in-memory) with write-through and invalidation
+   - **Tradeoff:** Slightly more complex cache management, but significantly improved performance and reduced database load
+
+5. **Pagination:**
+   - **Chosen:** Offset-based pagination with comprehensive metadata
+   - **Tradeoff:** Not as efficient as cursor-based pagination for very large datasets, but simpler to implement and understand
+
+## 🔌 API Endpoints
+
+All API endpoints are prefixed with `/api`. For example, to access the health endpoint, use `GET /api/health`.
+
+### Health
+
+- `GET /api/health` - Health check endpoint
+
+### Movies
+
+- `GET /api/movies` - Get all movies (with pagination and search)
+  - Query parameters: `page` (default: 1), `limit` (default: 10), `search` (optional: search by title)
+- `GET /api/movies/:id` - Get movie by ID
+- `POST /api/movies` - Create a new movie
+- `PUT /api/movies/:id` - Update a movie
+- `DELETE /api/movies/:id` - Soft delete a movie
+
+### Scenes
+
+- `GET /api/scenes` - Get all scenes (with pagination)
+- `GET /api/scenes/movie/:movieId` - Get all scenes for a movie (with pagination)
+  - Query parameters: `page` (default: 1), `limit` (default: 10)
+- `GET /api/scenes/:id` - Get scene by ID
+- `POST /api/scenes` - Create a new scene
+- `PUT /api/scenes/:id` - Update a scene
+- `DELETE /api/scenes/:id` - Soft delete a scene
+
+### Songs
+
+- `GET /api/songs` - Get all songs (with pagination and filters)
+  - Query parameters: `page` (default: 1), `limit` (default: 10), `title` (optional: filter by title), `artist` (optional: filter by artist)
+- `GET /api/songs/:id` - Get song by ID
+- `POST /api/songs` - Create a new song
+- `PUT /api/songs/:id` - Update a song
+- `DELETE /api/songs/:id` - Soft delete a song
+
+### Tracks
+
+- `POST /api/tracks` - Create a new track (associates a song to a scene)
+- `GET /api/tracks/:id` - Get track by ID
+- `GET /api/tracks/scene/:sceneId` - Get all tracks for a scene (with pagination)
+  - Query parameters: `page` (default: 1), `limit` (default: 10)
+- `GET /api/tracks/movie/:movieId` - Get all tracks for a movie (with pagination)
+  - Query parameters: `page` (default: 1), `limit` (default: 10)
+- `PUT /api/tracks/:id` - Update a track
+- `PUT /api/tracks/:id/license/status` - Update license status of a track
+- `DELETE /api/tracks/:id` - Soft delete a track
+
+### Licenses
+
+- `GET /api/licenses/:id` - Get license by ID
+- `GET /api/licenses/:id/history` - Get license status history
+
+## 🔄 Real-time Updates
+
+The backend implements **WebSocket** support using Socket.IO for real-time license status updates.
+
+### WebSocket Events
+
+**Client → Server:**
+
+- Connection: Clients connect to the WebSocket server
+- Disconnection: Automatic handling
+
+**Server → Client:**
+
+- `licenseStatusUpdate`: Broadcasted when a license status changes
+  ```json
+  {
+    "licenseId": 1,
+    "statusId": 2,
+    "statusName": "IN_NEGOTIATION",
+    "trackId": 1,
+    "timestamp": "2024-01-15T10:30:00Z"
+  }
+  ```
+
+### Implementation
+
+The `WebsocketGateway` is injected into the `LicensesService` and emits updates whenever a license status transition occurs. All connected clients receive these updates in real-time.
+
+## ⚡ Caching
+
+The backend implements a **multi-tier caching strategy** using Redis and in-memory caching to improve API response times and reduce database load.
+
+### Caching Architecture
+
+- **Primary Cache:** Redis for distributed caching across instances
+- **Fallback Cache:** In-memory cache (LRU with 1000 item limit, 60s TTL) for fast local access
+- **Cache Strategy:** Write-through caching with automatic invalidation on mutations
+
+### Cached Endpoints
+
+The following endpoints utilize caching:
+
+- **Movies:** `GET /api/movies` - Cached by page, limit, and search query
+- **Songs:** `GET /api/songs` - Cached by page, limit, title, and artist filters
+- **Scenes:** `GET /api/scenes/movie/:movieId` - Cached by movie ID, page, and limit
+- **Tracks:**
+  - `GET /api/tracks/scene/:sceneId` - Cached by scene ID, page, and limit
+  - `GET /api/tracks/movie/:movieId` - Cached by movie ID, page, and limit
+
+### Cache Invalidation
+
+Cache is automatically invalidated when:
+
+- **Movies:** Created, updated, or deleted
+- **Songs:** Created, updated, or deleted
+- **Scenes:** Created, updated, or deleted
+- **Tracks:** Created, updated, or deleted
+
+Cache keys are structured hierarchically (e.g., `movies:page:1:limit:10:search:title`) to enable efficient partial invalidation.
+
+### Cache Configuration
+
+- **TTL:** 60 seconds (1 minute) for cached responses
+- **Redis Connection:** Configured via `REDIS_URL` environment variable
+- **In-memory Cache:** 1000 item LRU cache with 60s TTL
+
+## 📄 Pagination
+
+All list endpoints support **pagination** with comprehensive metadata to help clients navigate through large datasets.
+
+### Pagination Parameters
+
+- `page` (optional, default: 1): Page number (1-indexed)
+- `limit` (optional, default: 10): Number of items per page
+
+### Pagination Response Format
+
+All paginated endpoints return responses in the following format:
+
+```json
+{
+  "data": [...],
+  "pagination": {
+    "total": 100,
+    "totalPages": 10,
+    "pageSize": 10,
+    "page": 1,
+    "nextPage": 2,
+    "previousPage": null,
+    "hasNextPage": true,
+    "hasPreviousPage": false
+  }
+}
+```
+
+### Pagination Metadata
+
+- `total`: Total number of items across all pages
+- `totalPages`: Total number of pages
+- `pageSize`: Number of items per page (same as `limit`)
+- `page`: Current page number
+- `nextPage`: Next page number (null if on last page)
+- `previousPage`: Previous page number (null if on first page)
+- `hasNextPage`: Boolean indicating if there's a next page
+- `hasPreviousPage`: Boolean indicating if there's a previous page
+
+## 🚀 Setup Instructions
+
+### Prerequisites
+
+- Node.js 22.20.0 or higher
+- Docker and Docker Compose
+- PostgreSQL (if running locally without Docker)
+- Redis (if running locally without Docker)
+
+### Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```env
+# Database Configuration
+DB_HOST=postgres
+DB_PORT=5432
+DB_USER=your_db_user
+DB_PASSWORD=your_db_password
+DB_NAME=your_db_name
+
+# Application Configuration
+PORT=3000
+FALLBACK_LANGUAGE=en
+
+# Redis Configuration
+REDIS_URL=redis://redis:6379
+```
+
+> **Note:** When running with Docker Compose, Redis and Postgres are automatically configured. For local development, ensure Redis is running and update `REDIS_URL` accordingly.
+
+### Running with Docker (Recommended)
+
+1. **Build and start the services:**
+
+   ```bash
+   docker-compose up --build
+   ```
+
+2. **The application will:**
+   - Start PostgreSQL database
+   - Start Redis cache server
+   - Run database migrations automatically
+   - Run database seeding
+   - Start the NestJS application on port 3000
+
+3. **Access the API:**
+   - API Base URL: `http://localhost:3000/api`
+   - Swagger UI: `http://localhost:3000/api/docs`
+   - WebSocket: `ws://localhost:3000`
+   - Redis: `localhost:6379`
+
+### Running Locally (Development)
+
+1. **Install dependencies:**
+
+   ```bash
+   npm install
+   ```
+
+2. **Set up environment variables:**
+   Create a `.env` file with the required variables (see above)
+
+3. **Start PostgreSQL and Redis:**
+
+   ```bash
+   docker compose up -d postgres redis
+   ```
+
+4. **Run database migrations:**
+
+   ```bash
+   npm run db:migrate:run
+   ```
+
+5. **Seed the database (optional):**
+
+   ```bash
+   npm run db:seed
+   ```
+
+6. **Start the development server:**
+   ```bash
+   npm run start:dev
+   ```
+
+### Available Scripts
+
+- `npm run build` - Build the application
+- `npm run start` - Start the application
+- `npm run start:dev` - Start in development mode with hot reload
+- `npm run start:prod` - Start in production mode
+- `npm run lint` - Run ESLint
+- `npm run test` - Run unit tests
+- `npm run test:e2e` - Run end-to-end tests
+- `npm run db:migrate` - Create database migrations
+- `npm run db:migrate:run` - Run database migrations
+- `npm run db:seed` - Seed the database
+
+## 🗄️ Database Migrations
+
+The project uses TypeORM migrations for database schema management.
+
+### Running Migrations
+
+Migrations run automatically when the Docker container starts (via `entrypoint.sh`). For local development:
+
+```bash
+npm run db:migrate:run
+```
+
+### Migration Files
+
+- `1763171378674-migration.ts` - Initial schema creation
+- `1763222446416-migration.ts` - Additional schema updates
 
 ## 📁 Project Structure
 
@@ -415,18 +530,23 @@ All HTTP requests are automatically logged via the `HttpLoggingInterceptor`:
 Critical business operations are logged at the service level:
 
 #### Movies Service
+
 - Movie creation, updates, and soft deletions
 
 #### Scenes Service
+
 - Scene creation, updates, and soft deletions
 
 #### Songs Service
+
 - Song creation, updates, and soft deletions
 
 #### Tracks Service
+
 - Track creation and soft deletions
 
 #### Licenses Service
+
 - License creation
 - License status transitions (with previous and new status)
 - License removal (cancellation)
@@ -434,6 +554,7 @@ Critical business operations are logged at the service level:
 ### WebSocket Logging
 
 The WebSocket gateway logs:
+
 - Client connections and disconnections
 - License status update emissions
 
@@ -446,6 +567,7 @@ The WebSocket gateway logs:
 ### Error Logging
 
 The global exception filter logs all errors with:
+
 - Request method and URL
 - Error message and stack trace
 - Appropriate error context
@@ -453,6 +575,7 @@ The global exception filter logs all errors with:
 ### Security & Privacy
 
 The logging interceptor automatically sanitizes sensitive data:
+
 - Passwords, tokens, secrets, and authorization headers are redacted in logs
 - Deep object traversal ensures nested sensitive fields are protected
 - Logs maintain usability while protecting sensitive information
@@ -460,6 +583,7 @@ The logging interceptor automatically sanitizes sensitive data:
 ### Log Configuration
 
 The application uses NestJS's built-in Logger with the following configuration:
+
 - **Log Levels:** `error`, `warn`, `log` (configured in `main.ts`)
 - **Format:** Structured logs with context (service name, log level, message)
 - **Location:** Logs are output to console/stdout for container-friendly logging
@@ -468,7 +592,6 @@ The application uses NestJS's built-in Logger with the following configuration:
 
 - **Input Validation:** All DTOs use `class-validator` decorators
 - **SQL Injection:** TypeORM uses parameterized queries
-- **CORS:** Enabled for cross-origin requests (configure appropriately for production)
 - **Error Handling:** Global exception filter prevents sensitive error exposure
 - **Soft Deletes:** Prevents accidental data loss
 - **Sensitive Data Protection:** Logging interceptor automatically redacts passwords, tokens, and other sensitive fields
@@ -486,11 +609,6 @@ The project includes testing infrastructure:
 Interactive API documentation is available via Swagger UI:
 
 - **URL:** `http://localhost:3000/api/docs`
-- **Features:**
-  - Browse all endpoints
-  - Test API calls directly
-  - View request/response schemas
-  - Authentication support (if implemented)
 
 ## 🌐 Internationalization
 
@@ -499,7 +617,3 @@ The backend supports multiple languages for error messages and validation:
 - **Supported Languages:** English (en), Spanish (es)
 - **Configuration:** Set via `FALLBACK_LANGUAGE` environment variable
 - **Usage:** Language can be specified via query parameter `?lang=en` or `Accept-Language` header
-
-## 📄 License
-
-See LICENSE file for details.
