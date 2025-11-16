@@ -133,13 +133,6 @@ The backend enforces these state transitions in the `LicensesService`. Invalid t
 
 ## 🎯 Tech Decisions & Tradeoffs
 
-### Why NestJS?
-
-- **Modular Architecture:** NestJS's module system aligns perfectly with domain-driven design
-- **TypeScript First:** Full type safety and excellent developer experience
-- **Built-in Features:** Dependency injection, decorators, and extensive ecosystem
-- **Scalability:** Easy to scale and maintain as the application grows
-
 ### Why REST API?
 
 - **Simplicity:** REST is straightforward and well-understood
@@ -147,13 +140,6 @@ The backend enforces these state transitions in the `LicensesService`. Invalid t
 - **Cacheable:** Responses can be cached for better performance
 - **Standard HTTP Methods:** Clear semantics for CRUD operations
 - **Swagger Integration:** Easy API documentation with NestJS Swagger
-
-### Why PostgreSQL?
-
-- **ACID Compliance:** Ensures data integrity for critical licensing workflows
-- **Relational Data:** Perfect fit for the entity relationships (movies → scenes → tracks)
-- **Mature Ecosystem:** Excellent tooling and TypeORM support
-- **JSON Support:** Can store unstructured data if needed in the future
 
 ### Why WebSockets for Real-time?
 
@@ -170,34 +156,19 @@ The backend enforces these state transitions in the `LicensesService`. Invalid t
 - **Cache Invalidation:** Automatic cache invalidation on mutations ensures data consistency
 - **Cost-effective:** Reduces database query costs and improves overall system efficiency
 
-### Why TypeORM?
-
-- **TypeScript Native:** Excellent TypeScript support with decorators
-- **Active Record & Data Mapper:** Flexible patterns
-- **Migration Support:** Built-in migration system
-- **Relationships:** Easy definition of entity relationships
-
 ### Tradeoffs
 
 1. **REST vs GraphQL:**
    - **Chosen:** REST for simplicity and standard HTTP semantics
    - **Tradeoff:** More endpoints needed, but clearer and easier to cache
 
-2. **WebSocket vs Server-Sent Events:**
-   - **Chosen:** WebSocket for bidirectional communication potential
-   - **Tradeoff:** Slightly more complex, but more flexible for future features
-
-3. **Soft Deletes:**
+2. **Soft Deletes:**
    - **Chosen:** Soft deletes to maintain data integrity and audit trail
    - **Tradeoff:** Requires filtering in queries, but preserves historical data
 
-4. **Caching Strategy:**
+3. **Caching Strategy:**
    - **Chosen:** Multi-tier caching (Redis + in-memory) with write-through and invalidation
    - **Tradeoff:** Slightly more complex cache management, but significantly improved performance and reduced database load
-
-5. **Pagination:**
-   - **Chosen:** Offset-based pagination with comprehensive metadata
-   - **Tradeoff:** Not as efficient as cursor-based pagination for very large datasets, but simpler to implement and understand
 
 ## 🔌 API Endpoints
 
