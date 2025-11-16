@@ -13,7 +13,6 @@ import {
   ApiOperation,
   ApiResponse,
   ApiParam,
-  ApiQuery,
   ApiBody,
 } from '@nestjs/swagger';
 import { MoviesService } from './movies.service';
@@ -43,7 +42,6 @@ export class MoviesController {
 
   @Get()
   @ApiOperation({ summary: 'Get all movies with pagination and search' })
-  @ApiQuery({ type: FindAllMoviesDto })
   @ApiResponse({
     status: 200,
     description: 'List of movies retrieved successfully',

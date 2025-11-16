@@ -76,7 +76,6 @@ export class TracksController {
     type: Number,
     example: 1,
   })
-  @ApiQuery({ type: FindAllBySceneIdTrackDto })
   @ApiResponse({
     status: 200,
     description: 'List of tracks retrieved successfully',
@@ -103,7 +102,6 @@ export class TracksController {
     type: Number,
     example: 1,
   })
-  @ApiQuery({ type: FindAllByMovieIdTrackDto })
   @ApiResponse({
     status: 200,
     description: 'List of tracks retrieved successfully',

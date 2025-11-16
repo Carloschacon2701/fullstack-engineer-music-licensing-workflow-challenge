@@ -54,7 +54,6 @@ export class ScenesController {
     type: Number,
     example: 1,
   })
-  @ApiQuery({ type: FindAllSceneDto })
   @ApiResponse({
     status: 200,
     description: 'List of scenes retrieved successfully',

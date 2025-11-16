@@ -43,7 +43,6 @@ export class SongsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all songs with pagination and filters' })
-  @ApiQuery({ type: FindAllSongDto })
   @ApiResponse({
     status: 200,
     description: 'List of songs retrieved successfully',
