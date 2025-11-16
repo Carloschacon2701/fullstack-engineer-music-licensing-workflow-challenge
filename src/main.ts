@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { swaggerConfig } from './config/swagger.config';
+import { swaggerConfig } from './config';
 import { setupApp } from './common/helpers/app-setup.helper';
 import { Logger } from '@nestjs/common';
 

@@ -4,10 +4,9 @@ import { TracksModule } from './modules/tracks/tracks.module';
 import { ScenesModule } from './modules/scenes/scenes.module';
 import { SongsModule } from './modules/songs/songs.module';
 import { LicensesModule } from './modules/licenses/licenses.module';
-import { AppConfigModule } from './config/app.config';
 import { HealthModule } from './modules/health/health.module';
-import { TypeOrmConfig } from './config/typeorm.config';
 import { WebsocketModule } from './modules/websocket/websocket.module';
+import { TypeOrmConfig, AppConfigModule } from './config';
 
 @Module({
   imports: [

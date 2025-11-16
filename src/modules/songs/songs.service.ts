@@ -5,8 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { Song } from './entities/song.entity';
 import { FindAllSongDto } from './dto/findAll-song.dto';
-import { calculatePagination } from '@/utils/getSkipPage';
-import { calculatePaginationResponse } from '@/utils/calculatePaginationResponse';
+import { calculatePagination, calculatePaginationResponse } from '@/utils';
 import { I18nException } from '@/common/exceptions/i18n.exception';
 import { I18nService } from 'nestjs-i18n';
 
