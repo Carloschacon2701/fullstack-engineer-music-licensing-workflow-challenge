@@ -8,6 +8,7 @@ import { UpdateSongDto } from './dto/update-song.dto';
 import { FindAllSongDto } from './dto/findAll-song.dto';
 import { I18nException } from '@/common/exceptions/i18n.exception';
 import { I18nService } from 'nestjs-i18n';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 describe('SongsService', () => {
   let service: SongsService;
@@ -23,6 +24,12 @@ describe('SongsService', () => {
     t: jest.fn((key: string) => key),
   };
 
+  const mockCacheManager = {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -35,6 +42,10 @@ describe('SongsService', () => {
           provide: I18nService,
           useValue: mockI18nService,
         },
+        {
+          provide: CACHE_MANAGER,
+          useValue: mockCacheManager,
+        },
       ],
     }).compile();
 
@@ -43,6 +54,7 @@ describe('SongsService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    mockCacheManager.get.mockResolvedValue(null);
   });
 
   describe('create', () => {
@@ -112,11 +124,14 @@ describe('SongsService', () => {
         skip: 0,
         take: 10,
         where: { is_deleted: false },
+        order: {
+          created_at: 'DESC',
+        },
       });
-      expect(result.data).toEqual(mockSongs);
-      expect(result.pagination).toBeDefined();
-      expect(result.pagination.totalPages).toBe(1);
-      expect(result.pagination.pageSize).toBe(10);
+      expect((result as any).data).toEqual(mockSongs);
+      expect((result as any).pagination).toBeDefined();
+      expect((result as any).pagination.totalPages).toBe(1);
+      expect((result as any).pagination.pageSize).toBe(10);
     });
 
     it('should return paginated songs with title filter', async () => {
@@ -149,9 +164,12 @@ describe('SongsService', () => {
           is_deleted: false,
           title: ILike('%Test%'),
         },
+        order: {
+          created_at: 'DESC',
+        },
       });
-      expect(result.data).toEqual(mockSongs);
-      expect(result.pagination.totalPages).toBe(1);
+      expect((result as any).data).toEqual(mockSongs);
+      expect((result as any).pagination.totalPages).toBe(1);
     });
 
     it('should return paginated songs with artist filter', async () => {
@@ -184,9 +202,12 @@ describe('SongsService', () => {
           is_deleted: false,
           artist: ILike('%Test Artist%'),
         },
+        order: {
+          created_at: 'DESC',
+        },
       });
-      expect(result.data).toEqual(mockSongs);
-      expect(result.pagination.totalPages).toBe(1);
+      expect((result as any).data).toEqual(mockSongs);
+      expect((result as any).pagination.totalPages).toBe(1);
     });
 
     it('should return paginated songs with both title and artist filters', async () => {
@@ -221,8 +242,11 @@ describe('SongsService', () => {
           title: ILike('%Test%'),
           artist: ILike('%Artist%'),
         },
+        order: {
+          created_at: 'DESC',
+        },
       });
-      expect(result.data).toEqual(mockSongs);
+      expect((result as any).data).toEqual(mockSongs);
     });
 
     it('should handle pagination correctly', async () => {
@@ -240,8 +264,11 @@ describe('SongsService', () => {
         skip: 5,
         take: 5,
         where: { is_deleted: false },
+        order: {
+          created_at: 'DESC',
+        },
       });
-      expect(result.pagination.pageSize).toBe(5);
+      expect((result as any).pagination.pageSize).toBe(5);
     });
 
     it('should use default pagination values when not provided', async () => {
@@ -256,6 +283,9 @@ describe('SongsService', () => {
         skip: 0,
         take: 10,
         where: { is_deleted: false },
+        order: {
+          created_at: 'DESC',
+        },
       });
     });
   });

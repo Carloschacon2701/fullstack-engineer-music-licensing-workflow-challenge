@@ -284,7 +284,14 @@ describe('MoviesService', () => {
         updated_at: new Date(),
       };
 
-      mockRepository.findOne.mockResolvedValue(existingMovie);
+      const updatedMovie = {
+        ...existingMovie,
+        ...updateMovieDto,
+      };
+
+      mockRepository.findOne
+        .mockResolvedValueOnce(existingMovie)
+        .mockResolvedValueOnce(updatedMovie);
       mockRepository.update.mockResolvedValue({ affected: 1 });
 
       const result = await service.update(1, updateMovieDto);
@@ -293,7 +300,10 @@ describe('MoviesService', () => {
         where: { id: 1, is_deleted: false },
       });
       expect(mockRepository.update).toHaveBeenCalledWith(1, updateMovieDto);
-      expect(result).toEqual({ affected: 1 });
+      expect(mockRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 1 },
+      });
+      expect(result).toEqual(updatedMovie);
     });
 
     it('should throw I18nException when movie is not found', async () => {
@@ -328,13 +338,22 @@ describe('MoviesService', () => {
         updated_at: new Date(),
       };
 
-      mockRepository.findOne.mockResolvedValue(existingMovie);
+      const updatedMovie = {
+        ...existingMovie,
+        ...updateMovieDto,
+      };
+
+      mockRepository.findOne
+        .mockResolvedValueOnce(existingMovie)
+        .mockResolvedValueOnce(updatedMovie);
       mockRepository.update.mockResolvedValue({ affected: 1 });
 
       const result = await service.update(1, updateMovieDto);
 
       expect(mockRepository.update).toHaveBeenCalledWith(1, updateMovieDto);
-      expect(result).toEqual({ affected: 1 });
+      expect(result).toEqual(updatedMovie);
+      expect(result?.title).toBe('New Title');
+      expect(result?.description).toBe('New Description');
     });
   });
 

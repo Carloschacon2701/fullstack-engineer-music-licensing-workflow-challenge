@@ -8,6 +8,7 @@ import { UpdateSceneDto } from './dto/update-scene.dto';
 import { FindAllSceneDto } from './dto/findAll-scene.dto';
 import { I18nException } from '@/common/exceptions/i18n.exception';
 import { I18nService } from 'nestjs-i18n';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 describe('ScenesService', () => {
   let service: ScenesService;
@@ -16,6 +17,7 @@ describe('ScenesService', () => {
     create: jest.fn(),
     save: jest.fn(),
     findOneBy: jest.fn(),
+    findOne: jest.fn(),
     findAndCount: jest.fn(),
     update: jest.fn(),
   };
@@ -26,6 +28,12 @@ describe('ScenesService', () => {
 
   const mockI18nService = {
     t: jest.fn((key: string) => key),
+  };
+
+  const mockCacheManager = {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -44,6 +52,10 @@ describe('ScenesService', () => {
           provide: I18nService,
           useValue: mockI18nService,
         },
+        {
+          provide: CACHE_MANAGER,
+          useValue: mockCacheManager,
+        },
       ],
     }).compile();
 
@@ -52,6 +64,7 @@ describe('ScenesService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    mockCacheManager.get.mockResolvedValue(null);
   });
 
   describe('create', () => {
@@ -172,11 +185,14 @@ describe('ScenesService', () => {
         skip: 0,
         take: 10,
         where: { movie_id, is_deleted: false },
+        order: {
+          created_at: 'DESC',
+        },
       });
-      expect(result.data).toEqual(mockScenes);
-      expect(result.pagination).toBeDefined();
-      expect(result.pagination.totalPages).toBe(1);
-      expect(result.pagination.pageSize).toBe(10);
+      expect((result as any).data).toEqual(mockScenes);
+      expect((result as any).pagination).toBeDefined();
+      expect((result as any).pagination.totalPages).toBe(1);
+      expect((result as any).pagination.pageSize).toBe(10);
     });
 
     it('should handle pagination correctly', async () => {
@@ -195,8 +211,11 @@ describe('ScenesService', () => {
         skip: 5,
         take: 5,
         where: { movie_id, is_deleted: false },
+        order: {
+          created_at: 'DESC',
+        },
       });
-      expect(result.pagination.pageSize).toBe(5);
+      expect((result as any).pagination.pageSize).toBe(5);
     });
 
     it('should use default pagination values when not provided', async () => {
@@ -212,6 +231,9 @@ describe('ScenesService', () => {
         skip: 0,
         take: 10,
         where: { movie_id, is_deleted: false },
+        order: {
+          created_at: 'DESC',
+        },
       });
     });
   });
@@ -279,16 +301,14 @@ describe('ScenesService', () => {
         ...updateSceneDto,
       };
 
-      mockSceneRepository.findOneBy
-        .mockResolvedValueOnce(existingScene)
-        .mockResolvedValueOnce(updatedScene);
+      mockSceneRepository.findOne.mockResolvedValueOnce(existingScene);
+      mockSceneRepository.findOneBy.mockResolvedValueOnce(updatedScene);
       mockSceneRepository.update.mockResolvedValue({ affected: 1 });
 
       const result = await service.update(1, updateSceneDto);
 
-      expect(mockSceneRepository.findOneBy).toHaveBeenCalledWith({
-        id: 1,
-        is_deleted: false,
+      expect(mockSceneRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 1, is_deleted: false },
       });
       expect(mockSceneRepository.update).toHaveBeenCalledWith(
         1,
@@ -302,15 +322,14 @@ describe('ScenesService', () => {
         title: 'Updated Title',
       };
 
-      mockSceneRepository.findOneBy.mockResolvedValue(null);
+      mockSceneRepository.findOne.mockResolvedValue(null);
       mockI18nService.t.mockReturnValue('Scene not found');
 
       await expect(service.update(999, updateSceneDto)).rejects.toThrow(
         I18nException,
       );
-      expect(mockSceneRepository.findOneBy).toHaveBeenCalledWith({
-        id: 999,
-        is_deleted: false,
+      expect(mockSceneRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 999, is_deleted: false },
       });
       expect(mockSceneRepository.update).not.toHaveBeenCalled();
     });
@@ -336,9 +355,8 @@ describe('ScenesService', () => {
         ...updateSceneDto,
       };
 
-      mockSceneRepository.findOneBy
-        .mockResolvedValueOnce(existingScene)
-        .mockResolvedValueOnce(updatedScene);
+      mockSceneRepository.findOne.mockResolvedValueOnce(existingScene);
+      mockSceneRepository.findOneBy.mockResolvedValueOnce(updatedScene);
       mockSceneRepository.update.mockResolvedValue({ affected: 1 });
 
       const result = await service.update(1, updateSceneDto);
@@ -369,14 +387,13 @@ describe('ScenesService', () => {
         is_deleted: true,
       };
 
-      mockSceneRepository.findOneBy.mockResolvedValue(mockScene);
+      mockSceneRepository.findOne.mockResolvedValue(mockScene);
       mockSceneRepository.save.mockResolvedValue(deletedScene);
 
       const result = await service.remove(1);
 
-      expect(mockSceneRepository.findOneBy).toHaveBeenCalledWith({
-        id: 1,
-        is_deleted: false,
+      expect(mockSceneRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 1, is_deleted: false },
       });
       expect(mockSceneRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ is_deleted: true }),
@@ -385,19 +402,18 @@ describe('ScenesService', () => {
     });
 
     it('should throw I18nException when scene is not found', async () => {
-      mockSceneRepository.findOneBy.mockResolvedValue(null);
+      mockSceneRepository.findOne.mockResolvedValue(null);
       mockI18nService.t.mockReturnValue('Scene not found');
 
       await expect(service.remove(999)).rejects.toThrow(I18nException);
-      expect(mockSceneRepository.findOneBy).toHaveBeenCalledWith({
-        id: 999,
-        is_deleted: false,
+      expect(mockSceneRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 999, is_deleted: false },
       });
       expect(mockSceneRepository.save).not.toHaveBeenCalled();
     });
 
     it('should throw I18nException when scene is already deleted', async () => {
-      mockSceneRepository.findOneBy.mockResolvedValue(null);
+      mockSceneRepository.findOne.mockResolvedValue(null);
       mockI18nService.t.mockReturnValue('Scene not found');
 
       await expect(service.remove(1)).rejects.toThrow(I18nException);

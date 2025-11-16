@@ -14,6 +14,7 @@ import { FindAllBySceneIdTrackDto } from './dto/findAllBySceneID-track.dto';
 import { I18nException } from '@/common/exceptions/i18n.exception';
 import { I18nService } from 'nestjs-i18n';
 import { LicenseStatusEnum } from '../licenses/entities/license.status.enum';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 describe('TracksService', () => {
   let service: TracksService;
@@ -48,6 +49,12 @@ describe('TracksService', () => {
     t: jest.fn((key: string) => key),
   };
 
+  const mockCacheManager = {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -76,6 +83,10 @@ describe('TracksService', () => {
           provide: I18nService,
           useValue: mockI18nService,
         },
+        {
+          provide: CACHE_MANAGER,
+          useValue: mockCacheManager,
+        },
       ],
     }).compile();
 
@@ -84,6 +95,7 @@ describe('TracksService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    mockCacheManager.get.mockResolvedValue(null);
   });
 
   describe('create', () => {
@@ -255,9 +267,12 @@ describe('TracksService', () => {
         relations: {
           license: true,
         },
+        order: {
+          created_at: 'DESC',
+        },
       });
-      expect(result.data).toEqual(mockTracks);
-      expect(result.pagination).toBeDefined();
+      expect((result as any).data).toEqual(mockTracks);
+      expect((result as any).pagination).toBeDefined();
     });
 
     it('should throw I18nException when movie is not found', async () => {
@@ -326,9 +341,12 @@ describe('TracksService', () => {
         relations: {
           license: true,
         },
+        order: {
+          created_at: 'DESC',
+        },
       });
-      expect(result.data).toEqual(mockTracks);
-      expect(result.pagination).toBeDefined();
+      expect((result as any).data).toEqual(mockTracks);
+      expect((result as any).pagination).toBeDefined();
     });
 
     it('should throw I18nException when scene is not found', async () => {
@@ -399,14 +417,21 @@ describe('TracksService', () => {
       const updatedTrack = {
         ...existingTrack,
         ...updateTrackDto,
+        scene: { id: 1, movie_id: 1 },
       };
 
-      mockTrackRepository.findOneBy.mockResolvedValue(existingTrack);
+      mockTrackRepository.findOne.mockResolvedValue({
+        ...existingTrack,
+        scene: { id: 1, movie_id: 1 },
+      });
       mockTrackRepository.save.mockResolvedValue(updatedTrack);
 
       const result = await service.update(1, updateTrackDto);
 
-      expect(mockTrackRepository.findOneBy).toHaveBeenCalledWith({ id: 1 });
+      expect(mockTrackRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 1, is_deleted: false },
+        relations: { scene: true },
+      });
       expect(mockTrackRepository.save).toHaveBeenCalledWith(
         expect.objectContaining(updateTrackDto),
       );
@@ -432,9 +457,13 @@ describe('TracksService', () => {
       const updatedTrack = {
         ...existingTrack,
         start_time_seconds: 10,
+        scene: { id: 1, movie_id: 1 },
       };
 
-      mockTrackRepository.findOneBy.mockResolvedValue(existingTrack);
+      mockTrackRepository.findOne.mockResolvedValue({
+        ...existingTrack,
+        scene: { id: 1, movie_id: 1 },
+      });
       mockTrackRepository.save.mockResolvedValue(updatedTrack);
 
       const result = await service.update(1, updateTrackDto);
@@ -448,12 +477,16 @@ describe('TracksService', () => {
         start_time_seconds: 10,
       };
 
-      mockTrackRepository.findOneBy.mockResolvedValue(null);
+      mockTrackRepository.findOne.mockResolvedValue(null);
       mockI18nService.t.mockReturnValue('Track not found');
 
       await expect(service.update(999, updateTrackDto)).rejects.toThrow(
         I18nException,
       );
+      expect(mockTrackRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 999, is_deleted: false },
+        relations: { scene: true },
+      });
       expect(mockTrackRepository.save).not.toHaveBeenCalled();
     });
   });
