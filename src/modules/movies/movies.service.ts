@@ -33,7 +33,6 @@ export class MoviesService {
 
     this.logger.log(`Movie created: ID ${movie.id} - "${movie.title}"`);
 
-    // Invalidate all movie-related cache keys (e.g., movies:page:*)
     await deleteCacheByPattern('movies:*', this.redisClient, this.cacheManager);
 
     return movie;
@@ -112,7 +111,6 @@ export class MoviesService {
 
     this.logger.log(`Movie updated: ID ${id}`);
 
-    // Invalidate all movie-related cache keys (e.g., movies:page:*)
     await deleteCacheByPattern('movies:*', this.redisClient, this.cacheManager);
 
     return this.movieRepository.findOne({ where: { id } });
@@ -136,7 +134,6 @@ export class MoviesService {
 
     this.logger.log(`Movie ${id} soft deleted`);
 
-    // Invalidate all movie-related cache keys (e.g., movies:page:*)
     await deleteCacheByPattern('movies:*', this.redisClient, this.cacheManager);
 
     return movie;

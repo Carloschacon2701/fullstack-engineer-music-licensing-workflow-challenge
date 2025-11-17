@@ -185,7 +185,8 @@ export class TracksService {
     }
 
     const where: FindOptionsWhere<Track> = {
-      scene: { id: scene.id, is_deleted: false },
+      is_deleted: false,
+      scene: { id: scene.id },
     };
 
     const [tracks, count] = await this.trackRepository.findAndCount({
@@ -211,8 +212,14 @@ export class TracksService {
   }
 
   async findOne(id: number) {
-    const track = await this.trackRepository.findOneBy({
-      id,
+    const track = await this.trackRepository.findOne({
+      where: { id, is_deleted: false },
+      relations: {
+        scene: true,
+        license: {
+          status: true,
+        },
+      },
     });
 
     if (!track) {
@@ -294,7 +301,7 @@ export class TracksService {
   async remove(id: number) {
     const track = await this.trackRepository.findOne({
       where: { id, is_deleted: false },
-      relations: { license: true },
+      relations: { license: true, scene: true },
     });
 
     if (!track) {
@@ -311,5 +318,17 @@ export class TracksService {
     this.logger.log(`Track ${id} soft deleted`);
 
     await this.licenseService.remove(track.license.id);
+    await Promise.all([
+      deleteCacheByPattern(
+        `tracks:scene:${track.scene_id}*`,
+        this.redisClient,
+        this.cacheManager,
+      ),
+      deleteCacheByPattern(
+        `tracks:movie:${track.scene.movie_id}*`,
+        this.redisClient,
+        this.cacheManager,
+      ),
+    ]);
   }
 }
