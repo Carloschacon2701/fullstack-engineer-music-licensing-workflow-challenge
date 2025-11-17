@@ -191,4 +191,24 @@ export class TracksController {
   remove(@Param('id') id: string) {
     return this.tracksService.remove(+id);
   }
+
+  @Get(':id/license/history')
+  @ApiOperation({ summary: 'Get the license history of a track' })
+  @ApiParam({
+    name: 'id',
+    description: 'Track ID',
+    type: Number,
+    example: 1,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'License history retrieved successfully',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Track not found',
+  })
+  getLicenseHistory(@Param('id') id: string) {
+    return this.tracksService.getLicenseHistory(+id);
+  }
 }

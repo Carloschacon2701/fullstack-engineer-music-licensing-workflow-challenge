@@ -20,6 +20,7 @@ describe('TracksController', () => {
     findOne: jest.fn(),
     update: jest.fn(),
     updateLicenseStatus: jest.fn(),
+    getLicenseHistory: jest.fn(),
     remove: jest.fn(),
   };
 
@@ -370,6 +371,61 @@ describe('TracksController', () => {
       }
 
       expect(mockTracksService.updateLicenseStatus).toHaveBeenCalledTimes(5);
+    });
+  });
+
+  describe('getLicenseHistory', () => {
+    it('should return license history for a track', async () => {
+      const mockHistory = [
+        {
+          id: 1,
+          license_id: 1,
+          status_id: 1,
+          created_at: new Date('2024-01-15T10:00:00Z'),
+        },
+        {
+          id: 2,
+          license_id: 1,
+          status_id: 2,
+          created_at: new Date('2024-01-15T10:30:00Z'),
+        },
+      ];
+
+      mockTracksService.getLicenseHistory.mockResolvedValue(mockHistory);
+
+      const result = await controller.getLicenseHistory('1');
+
+      expect(service.getLicenseHistory).toHaveBeenCalledWith(1);
+      expect(result).toEqual(mockHistory);
+    });
+
+    it('should convert string id to number', async () => {
+      const mockHistory = [
+        {
+          id: 1,
+          license_id: 1,
+          status_id: 1,
+          created_at: new Date('2024-01-15T10:00:00Z'),
+        },
+      ];
+
+      mockTracksService.getLicenseHistory.mockResolvedValue(mockHistory);
+
+      const result = await controller.getLicenseHistory('123');
+
+      expect(service.getLicenseHistory).toHaveBeenCalledWith(123);
+      expect(result).toEqual(mockHistory);
+    });
+
+    it('should return empty array when track has no license history', async () => {
+      const mockHistory = [];
+
+      mockTracksService.getLicenseHistory.mockResolvedValue(mockHistory);
+
+      const result = await controller.getLicenseHistory('1');
+
+      expect(service.getLicenseHistory).toHaveBeenCalledWith(1);
+      expect(result).toEqual(mockHistory);
     });
   });
 

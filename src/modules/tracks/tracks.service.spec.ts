@@ -43,6 +43,7 @@ describe('TracksService', () => {
   const mockLicensesService = {
     create: jest.fn(),
     updateStatus: jest.fn(),
+    getHistory: jest.fn(),
     remove: jest.fn(),
   };
 
@@ -565,6 +566,81 @@ describe('TracksService', () => {
         service.updateLicenseStatus(999, updateLicenseStatusDto),
       ).rejects.toThrow(I18nException);
       expect(mockLicensesService.updateStatus).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getLicenseHistory', () => {
+    it('should return license history for a track', async () => {
+      const mockTrack = {
+        id: 1,
+        scene_id: 1,
+        song_id: 1,
+        license: {
+          id: 1,
+        },
+      };
+
+      const mockHistory = [
+        {
+          id: 1,
+          license_id: 1,
+          status_id: 1,
+          created_at: new Date('2024-01-15T10:00:00Z'),
+        },
+        {
+          id: 2,
+          license_id: 1,
+          status_id: 2,
+          created_at: new Date('2024-01-15T10:30:00Z'),
+        },
+      ];
+
+      mockTrackRepository.findOne.mockResolvedValue(mockTrack);
+      mockLicensesService.getHistory.mockResolvedValue(mockHistory);
+
+      const result = await service.getLicenseHistory(1);
+
+      expect(mockTrackRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 1, is_deleted: false },
+        relations: { license: true },
+      });
+      expect(mockLicensesService.getHistory).toHaveBeenCalledWith(
+        mockTrack.license.id,
+      );
+      expect(result).toEqual(mockHistory);
+    });
+
+    it('should throw I18nException when track is not found', async () => {
+      mockTrackRepository.findOne.mockResolvedValue(null);
+      mockI18nService.t.mockReturnValue('Track not found');
+
+      await expect(service.getLicenseHistory(999)).rejects.toThrow(
+        I18nException,
+      );
+      expect(mockLicensesService.getHistory).not.toHaveBeenCalled();
+    });
+
+    it('should return empty array when license has no history', async () => {
+      const mockTrack = {
+        id: 1,
+        scene_id: 1,
+        song_id: 1,
+        license: {
+          id: 1,
+        },
+      };
+
+      const mockHistory = [];
+
+      mockTrackRepository.findOne.mockResolvedValue(mockTrack);
+      mockLicensesService.getHistory.mockResolvedValue(mockHistory);
+
+      const result = await service.getLicenseHistory(1);
+
+      expect(mockLicensesService.getHistory).toHaveBeenCalledWith(
+        mockTrack.license.id,
+      );
+      expect(result).toEqual(mockHistory);
     });
   });
 

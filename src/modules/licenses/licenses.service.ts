@@ -239,6 +239,25 @@ export class LicensesService {
     await this.statusMachine(status, license);
   }
 
+  async getHistory(id: number) {
+    const license = await this.licenseRepository.findOneBy({ id });
+
+    if (!license) {
+      throw new I18nException(
+        'events.license.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
+    }
+
+    const history = await this.licenseStatusHistoryRepository.find({
+      where: { license_id: license.id },
+      order: { created_at: 'DESC' },
+    });
+
+    return history;
+  }
+
   async remove(id: number) {
     const license = await this.licenseRepository.findOneBy({ id });
 

@@ -216,6 +216,7 @@ All API endpoints are prefixed with `/api`. For example, to access the health en
   - Query parameters: `page` (default: 1), `limit` (default: 10)
 - `PUT /api/tracks/:id` - Update a track
 - `PUT /api/tracks/:id/license/status` - Update license status of a track
+- `GET /api/tracks/:id/license/history` - Get license history of a track
 - `DELETE /api/tracks/:id` - Soft delete a track
 
 ### Licenses

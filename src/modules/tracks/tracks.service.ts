@@ -298,6 +298,27 @@ export class TracksService {
 
     await this.licenseService.updateStatus(track.license.id, { status });
   }
+
+  async getLicenseHistory(id: number) {
+    const track = await this.trackRepository.findOne({
+      where: { id, is_deleted: false },
+      relations: { license: true },
+    });
+
+    if (!track) {
+      throw new I18nException(
+        'events.track.notFound',
+        HttpStatus.NOT_FOUND,
+        this.i18n,
+      );
+    }
+
+    const licenseHistory = await this.licenseService.getHistory(
+      track.license.id,
+    );
+    return licenseHistory;
+  }
+
   async remove(id: number) {
     const track = await this.trackRepository.findOne({
       where: { id, is_deleted: false },
