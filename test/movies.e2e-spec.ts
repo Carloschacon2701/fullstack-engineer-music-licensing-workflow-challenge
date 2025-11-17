@@ -67,8 +67,9 @@ describe('Movies (e2e)', () => {
       })
       .expect(200);
 
-    // The API returns the update result, so verify the update was successful
-    expect(response.body).toHaveProperty('affected', 1);
+    // The API returns the updated movie entity
+    expect(response.body).toHaveProperty('id', movieId);
+    expect(response.body).toHaveProperty('title', 'Updated Test Movie');
 
     // Verify the update by fetching the movie again
     const getResponse = await request(app.getHttpServer())

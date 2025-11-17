@@ -9,6 +9,7 @@ import { FindAllSongDto } from './dto/findAll-song.dto';
 import { I18nException } from '@/common/exceptions/i18n.exception';
 import { I18nService } from 'nestjs-i18n';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { REDIS_CLIENT } from '@/config/redis.config';
 
 describe('SongsService', () => {
   let service: SongsService;
@@ -30,6 +31,8 @@ describe('SongsService', () => {
     del: jest.fn(),
   };
 
+  const mockRedisClient = null; // In tests, Redis is not available
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -45,6 +48,10 @@ describe('SongsService', () => {
         {
           provide: CACHE_MANAGER,
           useValue: mockCacheManager,
+        },
+        {
+          provide: REDIS_CLIENT,
+          useValue: mockRedisClient,
         },
       ],
     }).compile();

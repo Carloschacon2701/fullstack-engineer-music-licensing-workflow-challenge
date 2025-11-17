@@ -15,6 +15,7 @@ import { I18nException } from '@/common/exceptions/i18n.exception';
 import { I18nService } from 'nestjs-i18n';
 import { LicenseStatusEnum } from '../licenses/entities/license.status.enum';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { REDIS_CLIENT } from '@/config/redis.config';
 
 describe('TracksService', () => {
   let service: TracksService;
@@ -55,6 +56,8 @@ describe('TracksService', () => {
     del: jest.fn(),
   };
 
+  const mockRedisClient = null; // In tests, Redis is not available
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -86,6 +89,10 @@ describe('TracksService', () => {
         {
           provide: CACHE_MANAGER,
           useValue: mockCacheManager,
+        },
+        {
+          provide: REDIS_CLIENT,
+          useValue: mockRedisClient,
         },
       ],
     }).compile();
@@ -336,7 +343,8 @@ describe('TracksService', () => {
         skip: 0,
         take: 10,
         where: {
-          scene: { id: sceneId, is_deleted: false },
+          is_deleted: false,
+          scene: { id: sceneId },
         },
         relations: {
           license: true,
@@ -377,22 +385,42 @@ describe('TracksService', () => {
         is_deleted: false,
         created_at: new Date(),
         updated_at: new Date(),
+        scene: {
+          id: 1,
+          movie_id: 1,
+        },
       };
 
-      mockTrackRepository.findOneBy.mockResolvedValue(mockTrack);
+      mockTrackRepository.findOne.mockResolvedValue(mockTrack);
 
       const result = await service.findOne(1);
 
-      expect(mockTrackRepository.findOneBy).toHaveBeenCalledWith({ id: 1 });
+      expect(mockTrackRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 1, is_deleted: false },
+        relations: {
+          scene: true,
+          license: {
+            status: true,
+          },
+        },
+      });
       expect(result).toEqual(mockTrack);
     });
 
     it('should throw I18nException when track is not found', async () => {
-      mockTrackRepository.findOneBy.mockResolvedValue(null);
+      mockTrackRepository.findOne.mockResolvedValue(null);
       mockI18nService.t.mockReturnValue('Track not found');
 
       await expect(service.findOne(999)).rejects.toThrow(I18nException);
-      expect(mockTrackRepository.findOneBy).toHaveBeenCalledWith({ id: 999 });
+      expect(mockTrackRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 999, is_deleted: false },
+        relations: {
+          scene: true,
+          license: {
+            status: true,
+          },
+        },
+      });
     });
   });
 
@@ -554,6 +582,10 @@ describe('TracksService', () => {
         license: {
           id: 1,
         },
+        scene: {
+          id: 1,
+          movie_id: 1,
+        },
       };
 
       const deletedTrack = {
@@ -569,7 +601,7 @@ describe('TracksService', () => {
 
       expect(mockTrackRepository.findOne).toHaveBeenCalledWith({
         where: { id: 1, is_deleted: false },
-        relations: { license: true },
+        relations: { license: true, scene: true },
       });
       expect(mockTrackRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ is_deleted: true }),

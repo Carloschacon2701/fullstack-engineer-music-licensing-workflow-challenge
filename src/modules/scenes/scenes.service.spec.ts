@@ -9,6 +9,7 @@ import { FindAllSceneDto } from './dto/findAll-scene.dto';
 import { I18nException } from '@/common/exceptions/i18n.exception';
 import { I18nService } from 'nestjs-i18n';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { REDIS_CLIENT } from '@/config/redis.config';
 
 describe('ScenesService', () => {
   let service: ScenesService;
@@ -36,6 +37,8 @@ describe('ScenesService', () => {
     del: jest.fn(),
   };
 
+  const mockRedisClient = null; // In tests, Redis is not available
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -55,6 +58,10 @@ describe('ScenesService', () => {
         {
           provide: CACHE_MANAGER,
           useValue: mockCacheManager,
+        },
+        {
+          provide: REDIS_CLIENT,
+          useValue: mockRedisClient,
         },
       ],
     }).compile();
