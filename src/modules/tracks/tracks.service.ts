@@ -5,7 +5,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, Repository } from 'typeorm';
 import { Track } from './entities/track.entity';
 import { FindAllByMovieIdTrackDto } from './dto/findAllByMovieID-track.dto';
-import { calculatePagination, calculatePaginationResponse } from '@/utils';
+import {
+  calculatePagination,
+  calculatePaginationResponse,
+  deleteCacheByPattern,
+} from '@/utils';
 import { FindAllBySceneIdTrackDto } from './dto/findAllBySceneID-track.dto';
 import { Song } from '../songs/entities/song.entity';
 import { Scene } from '../scenes/entities/scene.entity';
@@ -16,6 +20,8 @@ import { I18nService } from 'nestjs-i18n';
 import { Movie } from '../movies/entities/movie.entity';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { REDIS_CLIENT } from '@/config/redis.config';
+import type { RedisClientType } from '@redis/client';
 
 @Injectable()
 export class TracksService {
@@ -33,6 +39,7 @@ export class TracksService {
     @InjectRepository(Movie)
     private movieRepository: Repository<Movie>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    @Inject(REDIS_CLIENT) private redisClient: RedisClientType | null,
   ) {}
 
   async create(createTrackDto: CreateTrackDto) {
@@ -81,12 +88,18 @@ export class TracksService {
 
     await this.licenseService.create({ track_id: savedTrack.id });
 
-    const cacheKeyMovie = `tracks:movie:${scene.movie_id}`;
-    const cacheKeyScene = `tracks:scene:${scene_id}`;
-
+    // Invalidate all track-related cache keys for this movie and scene
     await Promise.all([
-      this.cacheManager.del(cacheKeyMovie),
-      this.cacheManager.del(cacheKeyScene),
+      deleteCacheByPattern(
+        `tracks:movie:${scene.movie_id}*`,
+        this.redisClient,
+        this.cacheManager,
+      ),
+      deleteCacheByPattern(
+        `tracks:scene:${scene_id}*`,
+        this.redisClient,
+        this.cacheManager,
+      ),
     ]);
 
     return savedTrack;
@@ -235,12 +248,18 @@ export class TracksService {
 
     const savedTrack = await this.trackRepository.save(track);
 
-    const cacheKeyScene = `tracks:scene:${track.scene_id}`;
-    const cacheKeyMovie = `tracks:movie:${track.scene.movie_id}`;
-
+    // Invalidate all track-related cache keys for this movie and scene
     await Promise.all([
-      this.cacheManager.del(cacheKeyScene),
-      this.cacheManager.del(cacheKeyMovie),
+      deleteCacheByPattern(
+        `tracks:scene:${track.scene_id}*`,
+        this.redisClient,
+        this.cacheManager,
+      ),
+      deleteCacheByPattern(
+        `tracks:movie:${track.scene.movie_id}*`,
+        this.redisClient,
+        this.cacheManager,
+      ),
     ]);
 
     return savedTrack;

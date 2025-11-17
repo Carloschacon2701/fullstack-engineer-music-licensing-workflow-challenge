@@ -5,11 +5,17 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { Song } from './entities/song.entity';
 import { FindAllSongDto } from './dto/findAll-song.dto';
-import { calculatePagination, calculatePaginationResponse } from '@/utils';
+import {
+  calculatePagination,
+  calculatePaginationResponse,
+  deleteCacheByPattern,
+} from '@/utils';
 import { I18nException } from '@/common/exceptions/i18n.exception';
 import { I18nService } from 'nestjs-i18n';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { REDIS_CLIENT } from '@/config/redis.config';
+import type { RedisClientType } from '@redis/client';
 
 @Injectable()
 export class SongsService {
@@ -20,11 +26,11 @@ export class SongsService {
     private songRepository: Repository<Song>,
     private readonly i18n: I18nService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    @Inject(REDIS_CLIENT) private redisClient: RedisClientType | null,
   ) {}
 
   async create(createSongDto: CreateSongDto) {
     const { title, artist, genre } = createSongDto;
-    const cacheKey = `songs`;
     const song = this.songRepository.create({ title, artist, genre });
     const savedSong = await this.songRepository.save(song);
 
@@ -32,7 +38,8 @@ export class SongsService {
       `Song created: ID ${savedSong.id} - "${title}" by ${artist}`,
     );
 
-    await this.cacheManager.del(cacheKey);
+    // Invalidate all song-related cache keys (e.g., songs:page:*)
+    await deleteCacheByPattern('songs:*', this.redisClient, this.cacheManager);
 
     return savedSong;
   }
@@ -96,7 +103,6 @@ export class SongsService {
   }
 
   async update(id: number, updateSongDto: UpdateSongDto) {
-    const cacheKey = `songs`;
     const song = await this.songRepository.findOneBy({ id });
     if (!song) {
       throw new I18nException(
@@ -110,14 +116,14 @@ export class SongsService {
 
     this.logger.log(`Song updated: ID ${id}`);
 
-    await this.cacheManager.del(cacheKey);
+    // Invalidate all song-related cache keys (e.g., songs:page:*)
+    await deleteCacheByPattern('songs:*', this.redisClient, this.cacheManager);
 
     return updatedSong;
   }
 
   async remove(id: number) {
     const song = await this.songRepository.findOneBy({ id, is_deleted: false });
-    const cacheKey = `songs`;
     if (!song) {
       throw new I18nException(
         'events.song.notFound',
@@ -131,7 +137,8 @@ export class SongsService {
 
     this.logger.log(`Song ${id} soft deleted`);
 
-    await this.cacheManager.del(cacheKey);
+    // Invalidate all song-related cache keys (e.g., songs:page:*)
+    await deleteCacheByPattern('songs:*', this.redisClient, this.cacheManager);
 
     return song;
   }

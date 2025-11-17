@@ -3,7 +3,11 @@ import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { CreateMovieDto } from './dto/create-movie.dto';
 import { UpdateMovieDto } from './dto/update-movie.dto';
 import { FindAllMoviesDto } from './dto/findAll-movies.dto';
-import { calculatePagination, calculatePaginationResponse } from '@/utils';
+import {
+  calculatePagination,
+  calculatePaginationResponse,
+  deleteCacheByPattern,
+} from '@/utils';
 import { I18nException } from '@/common/exceptions/i18n.exception';
 import { FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -11,6 +15,8 @@ import { Movie } from './entities/movie.entity';
 import { I18nService } from 'nestjs-i18n';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { REDIS_CLIENT } from '@/config/redis.config';
+import type { RedisClientType } from '@redis/client';
 
 @Injectable()
 export class MoviesService {
@@ -20,14 +26,15 @@ export class MoviesService {
     @InjectRepository(Movie) private movieRepository: Repository<Movie>,
     private readonly i18n: I18nService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    @Inject(REDIS_CLIENT) private redisClient: RedisClientType | null,
   ) {}
   async create(createMovieDto: CreateMovieDto) {
-    const cacheKey = `movies`;
     const movie = await this.movieRepository.save(createMovieDto);
 
     this.logger.log(`Movie created: ID ${movie.id} - "${movie.title}"`);
 
-    await this.cacheManager.del(cacheKey);
+    // Invalidate all movie-related cache keys (e.g., movies:page:*)
+    await deleteCacheByPattern('movies:*', this.redisClient, this.cacheManager);
 
     return movie;
   }
@@ -105,8 +112,8 @@ export class MoviesService {
 
     this.logger.log(`Movie updated: ID ${id}`);
 
-    const cacheKey = `movies`;
-    await this.cacheManager.del(cacheKey);
+    // Invalidate all movie-related cache keys (e.g., movies:page:*)
+    await deleteCacheByPattern('movies:*', this.redisClient, this.cacheManager);
 
     return this.movieRepository.findOne({ where: { id } });
   }
@@ -129,8 +136,8 @@ export class MoviesService {
 
     this.logger.log(`Movie ${id} soft deleted`);
 
-    const cacheKey = `movies`;
-    await this.cacheManager.del(cacheKey);
+    // Invalidate all movie-related cache keys (e.g., movies:page:*)
+    await deleteCacheByPattern('movies:*', this.redisClient, this.cacheManager);
 
     return movie;
   }

@@ -5,12 +5,18 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Scene } from './entities/scene.entity';
 import { FindAllSceneDto } from './dto/findAll-scene.dto';
-import { calculatePagination, calculatePaginationResponse } from '@/utils';
+import {
+  calculatePagination,
+  calculatePaginationResponse,
+  deleteCacheByPattern,
+} from '@/utils';
 import { I18nException } from '@/common/exceptions/i18n.exception';
 import { Movie } from '../movies/entities/movie.entity';
 import { I18nService } from 'nestjs-i18n';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { REDIS_CLIENT } from '@/config/redis.config';
+import type { RedisClientType } from '@redis/client';
 
 @Injectable()
 export class ScenesService {
@@ -23,11 +29,11 @@ export class ScenesService {
     private movieRepository: Repository<Movie>,
     private readonly i18n: I18nService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    @Inject(REDIS_CLIENT) private redisClient: RedisClientType | null,
   ) {}
 
   async create(createSceneDto: CreateSceneDto) {
     const { movie_id, title, description } = createSceneDto;
-    const cacheKey = `scenes:movie:${movie_id}`;
     const movie = await this.movieRepository.findOneBy({
       id: movie_id,
       is_deleted: false,
@@ -53,7 +59,12 @@ export class ScenesService {
       `Scene created: ID ${savedScene.id} - "${title}" for movie ${movie_id}`,
     );
 
-    await this.cacheManager.del(cacheKey);
+    // Invalidate all scene-related cache keys for this movie (e.g., scenes:movie:${movie_id}:*)
+    await deleteCacheByPattern(
+      `scenes:movie:${movie_id}*`,
+      this.redisClient,
+      this.cacheManager,
+    );
 
     return savedScene;
   }
@@ -121,13 +132,16 @@ export class ScenesService {
       );
     }
 
-    const cacheKey = `scenes:movie:${scene.movie_id}`;
-
     await this.sceneRepository.update(id, updateSceneDto);
 
     this.logger.log(`Scene updated: ID ${id}`);
 
-    await this.cacheManager.del(cacheKey);
+    // Invalidate all scene-related cache keys for this movie (e.g., scenes:movie:${scene.movie_id}:*)
+    await deleteCacheByPattern(
+      `scenes:movie:${scene.movie_id}*`,
+      this.redisClient,
+      this.cacheManager,
+    );
 
     return this.findOne(id);
   }
@@ -144,14 +158,18 @@ export class ScenesService {
         this.i18n,
       );
     }
-    const cacheKey = `scenes:movie:${scene.movie_id}`;
 
     scene.is_deleted = true;
     await this.sceneRepository.save(scene);
 
     this.logger.log(`Scene ${id} soft deleted`);
 
-    await this.cacheManager.del(cacheKey);
+    // Invalidate all scene-related cache keys for this movie (e.g., scenes:movie:${scene.movie_id}:*)
+    await deleteCacheByPattern(
+      `scenes:movie:${scene.movie_id}*`,
+      this.redisClient,
+      this.cacheManager,
+    );
 
     return scene;
   }
