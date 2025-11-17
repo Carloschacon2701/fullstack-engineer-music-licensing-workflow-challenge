@@ -4,6 +4,61 @@
 
 This is the backend API for the **Music Licensing Workflow** system, designed to help **ACME BROS PICTURES** manage the music licensing process for their movies. The system allows tracking of music tracks associated with movie scenes, managing licensing status through a stateful workflow, and providing real-time updates to clients.
 
+## 📑 Table of Contents
+
+- [Tech Stack](#-tech-stack)
+- [Architecture](#-architecture)
+  - [Key Features](#key-features)
+- [Data Model](#-data-model)
+  - [Entity Relationships](#entity-relationships)
+  - [Core Entities](#core-entities)
+- [License Workflow (State Machine)](#-license-workflow-state-machine)
+  - [Workflow States](#workflow-states)
+  - [Valid Transitions](#valid-transitions)
+  - [Implementation](#implementation)
+- [Setup Instructions](#-setup-instructions)
+  - [Prerequisites](#prerequisites)
+  - [Environment Variables](#environment-variables)
+  - [Running with Docker (Recommended)](#running-with-docker-recommended)
+  - [Running Locally (Development)](#running-locally-development)
+  - [Available Scripts](#available-scripts)
+- [Tech Decisions & Tradeoffs](#-tech-decisions--tradeoffs)
+  - [Why REST API?](#why-rest-api)
+  - [Why WebSockets for Real-time?](#why-websockets-for-real-time)
+  - [Why Redis for Caching?](#why-redis-for-caching)
+  - [Tradeoffs](#tradeoffs)
+- [API Endpoints](#-api-endpoints)
+  - [Health](#health)
+  - [Movies](#movies)
+  - [Scenes](#scenes)
+  - [Songs](#songs)
+  - [Tracks](#tracks)
+  - [Licenses](#licenses)
+- [Real-time Updates](#-real-time-updates)
+  - [WebSocket Events](#websocket-events)
+  - [Implementation](#implementation-1)
+- [Caching](#-caching)
+  - [Caching Architecture](#caching-architecture)
+  - [Cached Endpoints](#cached-endpoints)
+  - [Cache Invalidation](#cache-invalidation)
+  - [Cache Configuration](#cache-configuration)
+- [Database Migrations](#-database-migrations)
+  - [Creating Migrations](#creating-migrations)
+  - [Running Migrations](#running-migrations)
+  - [Migration Files](#migration-files)
+- [Project Structure](#-project-structure)
+- [Logging](#-logging)
+  - [HTTP Request/Response Logging](#http-requestresponse-logging)
+  - [Service-Level Logging](#service-level-logging)
+  - [WebSocket Logging](#websocket-logging)
+  - [Application Lifecycle Logging](#application-lifecycle-logging)
+  - [Error Logging](#error-logging)
+  - [Security & Privacy](#security--privacy)
+  - [Log Configuration](#log-configuration)
+- [Testing](#-testing)
+- [API Documentation](#-api-documentation)
+- [Internationalization](#-internationalization)
+
 ## 🛠️ Tech Stack
 
 - **Framework:** NestJS (TypeScript)
@@ -131,6 +186,105 @@ The license management follows a state machine workflow that defines valid statu
 
 The backend enforces these state transitions in the `LicensesService`. Invalid transitions will result in a validation error. All status changes are logged in the `LicenseStatusHistory` table for audit purposes, and real-time updates are broadcast via WebSocket to all connected clients.
 
+## 🚀 Setup Instructions
+
+### Prerequisites
+
+- Node.js 22.20.0 or higher
+- Docker and Docker Compose
+- PostgreSQL (if running locally without Docker)
+- Redis (if running locally without Docker)
+
+### Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```env
+# Database Configuration
+DB_HOST=postgres
+DB_PORT=5432
+DB_USER=your_db_user
+DB_PASSWORD=your_db_password
+DB_NAME=your_db_name
+
+# Application Configuration
+PORT=3000
+FALLBACK_LANGUAGE=en
+
+# Redis Configuration
+REDIS_URL=redis://redis:6379
+```
+
+> **Note:** When running with Docker Compose, Redis and Postgres are automatically configured. For local development, ensure Redis is running and update `REDIS_URL` accordingly.
+
+### Running with Docker (Recommended)
+
+1. **Build and start the services:**
+
+   ```bash
+   docker-compose up -d --build
+   ```
+
+2. **The application will:**
+   - Start PostgreSQL database
+   - Start Redis cache server
+   - Run database migrations automatically
+   - Run database seeding
+   - Start the NestJS application on port 3000
+
+3. **Access the API:**
+   - API Base URL: `http://localhost:3000/api`
+   - Swagger UI: `http://localhost:3000/api/docs`
+   - WebSocket: `ws://localhost:3000`
+   - Redis: `localhost:6379`
+
+### Running Locally (Development)
+
+1. **Install dependencies:**
+
+   ```bash
+   npm install
+   ```
+
+2. **Set up environment variables:**
+   Create a `.env` file with the required variables (see above)
+
+3. **Start PostgreSQL and Redis:**
+
+   ```bash
+   docker compose up -d postgres redis
+   ```
+
+4. **Run database migrations:**
+
+   ```bash
+   npm run db:migrate:run
+   ```
+
+5. **Seed the database (optional):**
+
+   ```bash
+   npm run db:seed
+   ```
+
+6. **Start the development server:**
+   ```bash
+   npm run start:dev
+   ```
+
+### Available Scripts
+
+- `npm run build` - Build the application
+- `npm run start` - Start the application
+- `npm run start:dev` - Start in development mode with hot reload
+- `npm run start:prod` - Start in production mode
+- `npm run lint` - Run ESLint
+- `npm run test` - Run unit tests
+- `npm run test:e2e` - Run end-to-end tests
+- `npm run db:migrate` - Create database migrations
+- `npm run db:migrate:run` - Run database migrations
+- `npm run db:seed` - Seed the database
+
 ## 🎯 Tech Decisions & Tradeoffs
 
 ### Why REST API?
@@ -144,16 +298,11 @@ The backend enforces these state transitions in the `LicensesService`. Invalid t
 ### Why WebSockets for Real-time?
 
 - **Low Latency:** Immediate updates without polling overhead
-- **Bidirectional:** Can extend to support client-to-server real-time features
-- **Socket.IO:** Mature library with automatic reconnection and fallback support
-- **Scalability:** Can be extended with Redis adapter for horizontal scaling
 
 ### Why Redis for Caching?
 
 - **Performance:** Dramatically reduces database load and improves response times
 - **Scalability:** Distributed caching enables horizontal scaling across multiple instances
-- **Multi-tier Strategy:** In-memory fallback ensures caching works even if Redis is temporarily unavailable
-- **Cache Invalidation:** Automatic cache invalidation on mutations ensures data consistency
 - **Cost-effective:** Reduces database query costs and improves overall system efficiency
 
 ### Tradeoffs
@@ -167,8 +316,7 @@ The backend enforces these state transitions in the `LicensesService`. Invalid t
    - **Tradeoff:** Requires filtering in queries, but preserves historical data
 
 3. **Caching Strategy:**
-   - **Chosen:** Multi-tier caching (Redis + in-memory) with write-through and invalidation
-   - **Tradeoff:** Slightly more complex cache management, but significantly improved performance and reduced database load
+   - **Chosen:** Write-through and invalidation
 
 ## 🔌 API Endpoints
 
@@ -290,148 +438,15 @@ Cache keys are structured hierarchically (e.g., `movies:page:1:limit:10:search:t
 - **Redis Connection:** Configured via `REDIS_URL` environment variable
 - **In-memory Cache:** 1000 item LRU cache with 60s TTL
 
-## 📄 Pagination
-
-All list endpoints support **pagination** with comprehensive metadata to help clients navigate through large datasets.
-
-### Pagination Parameters
-
-- `page` (optional, default: 1): Page number (1-indexed)
-- `limit` (optional, default: 10): Number of items per page
-
-### Pagination Response Format
-
-All paginated endpoints return responses in the following format:
-
-```json
-{
-  "data": [...],
-  "pagination": {
-    "total": 100,
-    "totalPages": 10,
-    "pageSize": 10,
-    "page": 1,
-    "nextPage": 2,
-    "previousPage": null,
-    "hasNextPage": true,
-    "hasPreviousPage": false
-  }
-}
-```
-
-### Pagination Metadata
-
-- `total`: Total number of items across all pages
-- `totalPages`: Total number of pages
-- `pageSize`: Number of items per page (same as `limit`)
-- `page`: Current page number
-- `nextPage`: Next page number (null if on last page)
-- `previousPage`: Previous page number (null if on first page)
-- `hasNextPage`: Boolean indicating if there's a next page
-- `hasPreviousPage`: Boolean indicating if there's a previous page
-
-## 🚀 Setup Instructions
-
-### Prerequisites
-
-- Node.js 22.20.0 or higher
-- Docker and Docker Compose
-- PostgreSQL (if running locally without Docker)
-- Redis (if running locally without Docker)
-
-### Environment Variables
-
-Create a `.env` file in the root directory with the following variables:
-
-```env
-# Database Configuration
-DB_HOST=postgres
-DB_PORT=5432
-DB_USER=your_db_user
-DB_PASSWORD=your_db_password
-DB_NAME=your_db_name
-
-# Application Configuration
-PORT=3000
-FALLBACK_LANGUAGE=en
-
-# Redis Configuration
-REDIS_URL=redis://redis:6379
-```
-
-> **Note:** When running with Docker Compose, Redis and Postgres are automatically configured. For local development, ensure Redis is running and update `REDIS_URL` accordingly.
-
-### Running with Docker (Recommended)
-
-1. **Build and start the services:**
-
-   ```bash
-   docker-compose up --build
-   ```
-
-2. **The application will:**
-   - Start PostgreSQL database
-   - Start Redis cache server
-   - Run database migrations automatically
-   - Run database seeding
-   - Start the NestJS application on port 3000
-
-3. **Access the API:**
-   - API Base URL: `http://localhost:3000/api`
-   - Swagger UI: `http://localhost:3000/api/docs`
-   - WebSocket: `ws://localhost:3000`
-   - Redis: `localhost:6379`
-
-### Running Locally (Development)
-
-1. **Install dependencies:**
-
-   ```bash
-   npm install
-   ```
-
-2. **Set up environment variables:**
-   Create a `.env` file with the required variables (see above)
-
-3. **Start PostgreSQL and Redis:**
-
-   ```bash
-   docker compose up -d postgres redis
-   ```
-
-4. **Run database migrations:**
-
-   ```bash
-   npm run db:migrate:run
-   ```
-
-5. **Seed the database (optional):**
-
-   ```bash
-   npm run db:seed
-   ```
-
-6. **Start the development server:**
-   ```bash
-   npm run start:dev
-   ```
-
-### Available Scripts
-
-- `npm run build` - Build the application
-- `npm run start` - Start the application
-- `npm run start:dev` - Start in development mode with hot reload
-- `npm run start:prod` - Start in production mode
-- `npm run lint` - Run ESLint
-- `npm run test` - Run unit tests
-- `npm run test:e2e` - Run end-to-end tests
-- `npm run db:migrate` - Create database migrations
-- `npm run db:migrate:run` - Run database migrations
-- `npm run db:seed` - Seed the database
-
 ## 🗄️ Database Migrations
 
 The project uses TypeORM migrations for database schema management.
+
+### Creating Migrations
+
+```bash
+npm run db:migrate <migration_name>
+```
 
 ### Running Migrations
 
@@ -559,14 +574,6 @@ The application uses NestJS's built-in Logger with the following configuration:
 - **Log Levels:** `error`, `warn`, `log` (configured in `main.ts`)
 - **Format:** Structured logs with context (service name, log level, message)
 - **Location:** Logs are output to console/stdout for container-friendly logging
-
-## 🔒 Security Considerations
-
-- **Input Validation:** All DTOs use `class-validator` decorators
-- **SQL Injection:** TypeORM uses parameterized queries
-- **Error Handling:** Global exception filter prevents sensitive error exposure
-- **Soft Deletes:** Prevents accidental data loss
-- **Sensitive Data Protection:** Logging interceptor automatically redacts passwords, tokens, and other sensitive fields
 
 ## 🧪 Testing
 
